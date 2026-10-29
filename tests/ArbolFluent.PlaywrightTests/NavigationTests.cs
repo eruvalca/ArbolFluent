@@ -9,6 +9,7 @@ using Xunit;
 namespace ArbolFluent.PlaywrightTests;
 
 [SuppressMessage("Maintainability", "CA1515:Consider making public types internal", Justification = "xUnit requires public test classes for discovery.")]
+[Collection<BrowserAppHostDefinition>]
 public sealed class NavigationTests(ITestOutputHelper output)
 {
     [Theory]

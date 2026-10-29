@@ -159,6 +159,10 @@ dotnet test --project tests/ArbolFluent.IntegrationTests/ArbolFluent.Integration
 dotnet test --project tests/ArbolFluent.AspireIntegrationTests/ArbolFluent.AspireIntegrationTests.csproj
 dotnet test --project tests/ArbolFluent.PlaywrightTests/ArbolFluent.PlaywrightTests.csproj
 
+# Browser suites are selected by trait; the PR label and nightly job use these.
+dotnet test --project tests/ArbolFluent.PlaywrightTests/ArbolFluent.PlaywrightTests.csproj --filter-trait Category=BrowserSmoke
+dotnet test --project tests/ArbolFluent.PlaywrightTests/ArbolFluent.PlaywrightTests.csproj --filter-not-trait Category=Performance
+
 # All five projects; requires the infrastructure/browser prerequisites below.
 dotnet test --solution ArbolFluent.slnx --no-build --report-trx --coverage --coverage-output-format cobertura --results-directory TestResults
 ```
