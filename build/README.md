@@ -158,7 +158,10 @@ WebAssembly template's cached `index.html` strategy to this mixed SSR/Auto app.
 
 Validate both a solution build and `dotnet publish src/ArbolFluent/ArbolFluent.csproj
 --configuration Release --output artifacts/pwa-publish`. Confirm the manifest,
-icons, generated worker, and fallback assets are present. Browser checks run
+icons, generated worker, and fallback assets are present. The icons under
+`src/ArbolFluent/wwwroot/icons` are neutral placeholders (a letter on the Fluent
+brand colour); replace them with product artwork before shipping, keeping the
+declared sizes and the maskable variant. Browser checks run
 against the actual Aspire-hosted application with disposable storage;
 see the [test guide](../tests/README.md#choosing-an-integration-layer) and the
 PWA and accessibility cases in `ArbolFluent.PlaywrightTests`.
