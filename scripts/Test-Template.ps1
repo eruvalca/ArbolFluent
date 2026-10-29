@@ -11,6 +11,8 @@ $PackagePath = (Resolve-Path -LiteralPath $PackagePath).Path
 $package = Read-TemplatePackage $PackagePath
 $runRoot = Join-Path ([IO.Path]::GetTempPath()) ('arbolfluent-template-validation-' + [guid]::NewGuid().ToString('N'))
 [IO.Directory]::CreateDirectory($runRoot) | Out-Null
+# Keep SDK selection consistent with the packaged application for install/generate.
+[IO.File]::WriteAllBytes((Join-Path $runRoot 'global.json'), $package.Files[$package.Prefix + 'global.json'])
 $repository = Split-Path $PSScriptRoot -Parent
 Assert-Template (-not $runRoot.StartsWith($repository.TrimEnd('\') + '\', [StringComparison]::OrdinalIgnoreCase)) 'Validation must run outside the source tree.'
 $hive = Join-Path $runRoot 'hive'
@@ -45,6 +47,7 @@ function ConvertTo-ExpectedName {
 try {
     Push-Location $runRoot
     try {
+        $receipt.sdkVersion = (& dotnet --version).Trim()
         Invoke-ValidationCommand dotnet (@('new', 'install', $PackagePath) + $hiveArgs) 'install.log'
         $cases = @(
             @{ name = 'TemplateSmoke'; directory = 'TemplateSmoke' },
