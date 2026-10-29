@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using ArbolFluent.Testing;
 using Aspire.Hosting.Testing;
 using Microsoft.Playwright;
-using ArbolFluent.Testing;
 using Shouldly;
 using Xunit;
 

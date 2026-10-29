@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
+using ArbolFluent.Data;
 using ArchUnitNET.Domain;
 using ArchUnitNET.Fluent.Slices;
 using ArchUnitNET.Loader;
-using ArbolFluent.Data;
 using Microsoft.AspNetCore.Components;
 using Shouldly;
 using Xunit;

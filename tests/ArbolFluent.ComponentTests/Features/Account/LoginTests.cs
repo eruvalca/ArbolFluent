@@ -1,12 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using ArbolFluent.Features.Account.Models;
+using ArbolFluent.Features.Account.Pages;
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using ArbolFluent.Features.Account.Models;
-using ArbolFluent.Features.Account.Pages;
 using Shouldly;
 using Xunit;
 

@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Identity;
 using ArbolFluent.Data;
 using ArbolFluent.Features.Account.Models;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Identity;
 
 namespace ArbolFluent.Features.Account.Pages;
 

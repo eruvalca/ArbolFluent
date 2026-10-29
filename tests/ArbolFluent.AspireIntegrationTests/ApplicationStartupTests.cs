@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
+using ArbolFluent.Testing;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
-using ArbolFluent.Testing;
 using Shouldly;
 using Xunit;
 

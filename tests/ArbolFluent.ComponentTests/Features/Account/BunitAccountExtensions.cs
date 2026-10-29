@@ -1,4 +1,6 @@
 using System.Text.Encodings.Web;
+using ArbolFluent.Data;
+using ArbolFluent.Features.Account.Services;
 using Bunit;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -9,8 +11,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.FluentUI.AspNetCore.Components;
 using NSubstitute;
-using ArbolFluent.Data;
-using ArbolFluent.Features.Account.Services;
 
 namespace ArbolFluent.ComponentTests.Features.Account;
 

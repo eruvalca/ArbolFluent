@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using System.Text.Json;
+using ArbolFluent.Data;
+using ArbolFluent.Features.Account.Endpoints;
 using Bogus;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -13,8 +15,6 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
-using ArbolFluent.Data;
-using ArbolFluent.Features.Account.Endpoints;
 using Shouldly;
 using Xunit;
 

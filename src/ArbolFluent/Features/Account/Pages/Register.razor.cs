@@ -1,10 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Encodings.Web;
+using ArbolFluent.Data;
+using ArbolFluent.Features.Account.Extensions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Identity;
-using ArbolFluent.Data;
-using ArbolFluent.Features.Account.Extensions;
 
 namespace ArbolFluent.Features.Account.Pages;
 

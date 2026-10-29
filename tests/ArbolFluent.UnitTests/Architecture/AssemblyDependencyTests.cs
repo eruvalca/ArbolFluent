@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
-using ArchUnitNET.Domain;
-using ArchUnitNET.Loader;
 using ArbolFluent.SharedKernel;
 using ArbolFluent.UI;
+using ArchUnitNET.Domain;
+using ArchUnitNET.Loader;
 using Shouldly;
 using Xunit;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;

@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using ArbolFluent.Features.Account.Models;
+using ArbolFluent.Features.Account.Services;
 using Microsoft.AspNetCore.Identity;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
-using ArbolFluent.Features.Account.Models;
-using ArbolFluent.Features.Account.Services;
 using Shouldly;
 using Xunit;
 

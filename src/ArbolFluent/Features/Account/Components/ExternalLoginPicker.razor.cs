@@ -1,7 +1,7 @@
+using ArbolFluent.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
-using ArbolFluent.Data;
 
 namespace ArbolFluent.Features.Account.Components;
 
