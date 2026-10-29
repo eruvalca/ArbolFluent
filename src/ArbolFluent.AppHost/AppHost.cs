@@ -5,7 +5,7 @@ var postgres = builder.AddPostgres("postgres")
     .WithRepl();
 var database = postgres.AddDatabase("arbolfluentdb", "arbolfluent");
 
-var web = builder.AddProject<Projects.ArbolFluent>("arbolfluent")
+var web = builder.AddProject<Projects.ArbolFluent>("arbolfluent-web")
     .WithReference(database)
     .WaitFor(database)
     .WithExternalHttpEndpoints()

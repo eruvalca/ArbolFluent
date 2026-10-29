@@ -24,7 +24,7 @@ setup and runtime procedures remain in the [root README](../../README.md).
 - Run Aspire CLI commands from the repository root; `aspire.config.json` selects
   `src/ArbolFluent.AppHost/ArbolFluent.AppHost.csproj`. Use
   `aspire start --launch-profile https --non-interactive`,
-  `aspire wait arbolfluent --timeout 120 --non-interactive`, and `aspire describe`.
+  `aspire wait arbolfluent-web --timeout 120 --non-interactive`, and `aspire describe`.
   Stop Aspire before formatting/full builds on Windows and when agent validation
   is finished. Ordinary shutdown uses `aspire stop`; `--force` removes persistent
   resource instances and requires explicit destructive intent for one AppHost.

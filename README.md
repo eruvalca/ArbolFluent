@@ -3,6 +3,17 @@
 .NET 10 Blazor application with a hosted WebAssembly client, shared UI and kernel,
 Aspire orchestration, and PostgreSQL-backed ASP.NET Core Identity.
 
+<!-- template-authoring:start -->
+## Personal solution template
+
+To create and refresh the local `dotnet new arbolfluent` snapshot, follow
+[Template maintenance](docs/template/README.md). Packaging uses clean committed
+source, validates generated applications, and installs a local `.nupkg`.
+[Historical provenance](docs/template/historical-validation.md) records where the
+starter came from and is excluded from generated applications.
+
+<!-- template-authoring:end -->
+
 ## Local prerequisites
 
 - .NET SDK **10.0.401** (selected by `global.json`).
@@ -53,7 +64,7 @@ run (including agent validation), use:
 
 ```powershell
 aspire start --launch-profile https --non-interactive
-aspire wait arbolfluent --timeout 120 --non-interactive
+aspire wait arbolfluent-web --timeout 120 --non-interactive
 aspire describe --non-interactive
 ```
 
@@ -230,7 +241,7 @@ and [JavaScript with static SSR](https://learn.microsoft.com/aspnet/core/blazor/
 postgres (PostgreSQL 18.3, managed data volume)
   ├─ arbolfluentdb (physical database: arbolfluent)
   │    └─ arbolfluent-migrations (EF database update)
-  │         └─ arbolfluent (Blazor server + hosted WebAssembly)
+  │         └─ arbolfluent-web (Blazor server + hosted WebAssembly)
   └─ pgadmin (explicit start)
 ```
 
@@ -240,10 +251,10 @@ After a normal startup, these dashboard states are expected:
 | --- | --- | --- |
 | `postgres`, `arbolfluentdb` | Running / Healthy | PostgreSQL and the application database are ready. |
 | `arbolfluent-migrations` | Finished | The one-shot migration command completed successfully. It is not a long-running service. |
-| `arbolfluent` | Running / Healthy | The web application is ready and its database readiness check passes. |
+| `arbolfluent-web` | Running / Healthy | The web application is ready and its database readiness check passes. |
 | `pgadmin` | Not started | Optional database UI; start it when needed. |
 
-With hidden resources displayed, `arbolfluent-rebuilder` can also be **Not started**
+With hidden resources displayed, `arbolfluent-web-rebuilder` can also be **Not started**
 until the web project's Rebuild command is used, and the EF tool resource can be
 **Finished**. These helper states do not indicate an application startup failure.
 An **Exited**, **Failed**, or **Unhealthy** application/database resource, or web
@@ -321,7 +332,7 @@ can delay the response (about 15 seconds in local outage validation). Normal
 application operations retain Aspire's retry behavior.
 
 The dashboard exposes server logs, request traces, Npgsql database spans, and metrics.
-Useful CLI commands include `aspire logs arbolfluent`, `aspire otel traces`, and
+Useful CLI commands include `aspire logs arbolfluent-web`, `aspire otel traces`, and
 `aspire otel logs`. The Aspire MCP server provides the same resource and telemetry
 visibility to agents. Database query telemetry can contain application information;
 keep exports and runtime logs out of Git.
