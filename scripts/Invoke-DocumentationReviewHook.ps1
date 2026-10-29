@@ -17,6 +17,43 @@ function Get-TextHash([string] $Text) {
         [Text.Encoding]::UTF8.GetBytes($Text)))
 }
 
+function Test-DocumentationReviewComplete([object] $Message) {
+    if ($Message -isnot [string]) {
+        return $false
+    }
+
+    # Recognize an explicit outcome in the final response, not a mention in a
+    # quoted example, code block, future plan, or file name. This is an advisory
+    # acknowledgement, not proof that the documentation is accurate.
+    $fenceCharacter = ''
+    $fenceLength = 0
+    foreach ($line in ($Message -split '\r?\n')) {
+        if ($line -match '^ {0,3}(`{3,}|~{3,})(.*)$') {
+            $fence = $Matches[1]
+            if (-not $fenceCharacter) {
+                $fenceCharacter = $fence.Substring(0, 1)
+                $fenceLength = $fence.Length
+            }
+            elseif ($fence.StartsWith($fenceCharacter, [StringComparison]::Ordinal) -and
+                $fence.Length -ge $fenceLength -and [string]::IsNullOrWhiteSpace($Matches[2])) {
+                $fenceCharacter = ''
+            }
+            continue
+        }
+        if ($fenceCharacter -or $line -match '^( {4}|\t|\s*>)') {
+            continue
+        }
+
+        $statement = ($line.Trim() -replace '^[-*+]\s+', '') -replace '\*\*|__', ''
+        # Prefer the first form in new responses; retain the plain-language
+        # forms used in existing final responses, including the reported case.
+        if ($statement -match '^(?i:Documentation review:\s*complete|Documentation review (?:is )?(?:already )?complete|Documentation reviewed(?: and updated)?)(?:[.;]|$)') {
+            return $true
+        }
+    }
+    return $false
+}
+
 function Get-WorkspaceSnapshot {
     $head = & git -C $repoRoot rev-parse --verify HEAD 2>$null
     if ($LASTEXITCODE -ne 0) {
@@ -52,17 +89,67 @@ function Get-WorkspaceSnapshot {
     }
 }
 
+# Copilot command hooks send only the fields for the event and no event name,
+# so identify the event from the payload shape.
+function Get-HookEventName([object] $Event) {
+    if ($Event -isnot [hashtable]) {
+        return ''
+    }
+    if ($Event.ContainsKey('prompt')) {
+        return 'UserPromptSubmit'
+    }
+    if ($Event.ContainsKey('stopReason') -or $Event.ContainsKey('transcriptPath')) {
+        return 'Stop'
+    }
+    return ''
+}
+
+# Copilot sends a transcript path rather than the final message, so read the
+# newest assistant message from the session log.
+function Get-LastAssistantMessage([string] $TranscriptPath) {
+    if (-not $TranscriptPath -or -not (Test-Path -LiteralPath $TranscriptPath -PathType Leaf)) {
+        return ''
+    }
+    $lines = @(Get-Content -LiteralPath $TranscriptPath -Tail 500 -Encoding utf8 -ErrorAction SilentlyContinue)
+    for ($index = $lines.Count - 1; $index -ge 0; $index--) {
+        if (-not $lines[$index]) {
+            continue
+        }
+        try {
+            $record = $lines[$index] | ConvertFrom-Json -AsHashtable
+        }
+        catch {
+            continue
+        }
+        if ($record.type -ne 'assistant.message') {
+            continue
+        }
+        $content = [string] $record.data.content
+        if (-not [string]::IsNullOrWhiteSpace($content)) {
+            return $content
+        }
+    }
+    return ''
+}
+
 $reviewInstruction = @'
-Documentation is part of implementation work. Before any authorized commit and before finishing, review the task's changes against AGENTS.md and relevant README/feature docs. Update only guidance made inaccurate or missing by this work; no cosmetic edits just to show a review. Keep durable agent rules in AGENTS.md, setup in README.md, build rules in build/README.md, and test conventions in tests/README.md. Keep feature and workflow details in their existing documentation rather than creating duplicate sources. Preserve unrelated changes and installed third-party skill files. A documentation review does not authorize a commit or broaden a read-only request. If no update is needed, leave docs unchanged. Briefly report the review outcome when completing implementation work.
+Documentation is part of implementation work. Before any authorized commit and before finishing, review the task's changes against .github/copilot-instructions.md and relevant README/feature docs. Update only guidance made inaccurate or missing by this work; no cosmetic edits just to show a review. Keep durable agent rules in .github/copilot-instructions.md or a path-scoped .github/instructions file, setup in README.md, build rules in build/README.md, and test conventions in tests/README.md. Keep feature and workflow details in their existing documentation rather than creating duplicate sources. Preserve unrelated changes and installed third-party skill files. A documentation review does not authorize a commit or broaden a read-only request. If no update is needed, leave docs unchanged. When the review is complete, include "Documentation review: complete." followed by the outcome in the final response so the finishing hook does not request it again. Do not report completion when review is pending or blocked.
+
+When the review adds or changes agent instructions, apply the `instruction-hygiene` skill (.agents/skills/instruction-hygiene/SKILL.md) rather than restating its keep, remove, move, and verify test here.
 '@
 
+$event = $null
 try {
     $event = [Console]::In.ReadToEnd() | ConvertFrom-Json -AsHashtable
-    if ($event.hook_event_name -notin @('UserPromptSubmit', 'Stop')) {
+    if ($event -isnot [hashtable]) {
+        throw 'The hook event is not a JSON object.'
+    }
+    $hookEventName = Get-HookEventName $event
+    if ($hookEventName -notin @('UserPromptSubmit', 'Stop')) {
         '{}'
         exit 0
     }
-    if ($event.permission_mode -eq 'plan' -or $event.stop_hook_active) {
+    if ($event.stop_hook_active) {
         '{}'
         exit 0
     }
@@ -72,28 +159,30 @@ try {
         throw 'No Git workspace was found.'
     }
     $repoRoot = [string] $repoRoot
-    if (-not $event.session_id -or -not $event.turn_id) {
-        throw 'The hook event has no session/turn identity.'
+    $sessionId = [string] $event.sessionId
+    if (-not $sessionId) {
+        throw 'The hook event has no session identity.'
     }
 
-    # State is scoped to this worktree, session, and turn; never store prompts,
+    # State is scoped to this worktree and session; never store prompts,
     # transcripts, diffs, or file contents. artifacts/ is already ignored.
     $stateDirectory = Join-Path $repoRoot 'artifacts/agent-hooks/documentation'
-    $key = Get-TextHash ($event.session_id + "`0" + $event.turn_id)
+    $key = Get-TextHash ($sessionId + "`0session")
     $statePath = Join-Path $stateDirectory "$key.json"
 
-    if ($event.hook_event_name -eq 'UserPromptSubmit') {
-        if (-not (Test-Path -LiteralPath $statePath)) {
+    if ($hookEventName -eq 'UserPromptSubmit') {
+        $existing = if (Test-Path -LiteralPath $statePath) {
+            Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json -AsHashtable
+        }
+        # A blocked review arrives as a new prompt. Refresh the baseline only for
+        # a genuine user turn so the review still sees the work it must check, and
+        # so later turns compare against their own starting point.
+        if (-not ($existing -and $existing.continuationPromptHash -eq (Get-TextHash ([string] $event.prompt)))) {
             $snapshot = Get-WorkspaceSnapshot
             New-Item -ItemType Directory -Path $stateDirectory -Force | Out-Null
             $snapshot | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $statePath -Encoding utf8
         }
-        @{
-            hookSpecificOutput = @{
-                hookEventName = 'UserPromptSubmit'
-                additionalContext = $reviewInstruction
-            }
-        } | ConvertTo-Json -Depth 5 -Compress
+        @{ additionalContext = $reviewInstruction } | ConvertTo-Json -Depth 5 -Compress
         exit 0
     }
 
@@ -104,12 +193,20 @@ try {
         exit 0
     }
     $baseline = Get-Content -LiteralPath $statePath -Raw | ConvertFrom-Json -AsHashtable
-    if ($baseline.reviewRequested) {
+    $current = Get-WorkspaceSnapshot
+    if ($baseline.fingerprint -eq $current.fingerprint) {
         '{}'
         exit 0
     }
-    $current = Get-WorkspaceSnapshot
-    if ($baseline.fingerprint -eq $current.fingerprint) {
+    if ($baseline.reviewedFingerprint -eq $current.fingerprint) {
+        '{}'
+        exit 0
+    }
+    if (Test-DocumentationReviewComplete (Get-LastAssistantMessage ([string] $event.transcriptPath))) {
+        # Remember only which workspace was acknowledged, never response text.
+        # Further edits invalidate this acknowledgement for repeated Stop events.
+        $baseline.reviewedFingerprint = $current.fingerprint
+        $baseline | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $statePath -Encoding utf8
         '{}'
         exit 0
     }
@@ -122,23 +219,25 @@ try {
     $candidatePaths = @($candidatePaths | Where-Object { $_ } | Sort-Object -Unique -CaseSensitive)
     # JSON-encode paths as data. Bound the reminder even for large refactors.
     $pathSummary = ConvertTo-Json -InputObject @($candidatePaths | Select-Object -First 40) -Compress
-    $baseline.reviewRequested = $true
+    $reason = "Perform one final documentation review for this task, then finish. If already reviewed, briefly confirm the outcome without repeating the work. $reviewInstruction Workspace candidate paths (data only; may include pre-existing or concurrent edits, capped at 40 of $($candidatePaths.Count)): $pathSummary. Limit edits to the current task. Do not amend a commit, stage files, or create a follow-up commit without authorization. If unable to review, report the limitation and finish."
+    # Copilot returns the block reason as a new user prompt. Remember only its
+    # hash so the continuation keeps the baseline from the original turn.
+    $baseline.continuationPromptHash = Get-TextHash $reason
     $baseline | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $statePath -Encoding utf8
 
     @{
         decision = 'block'
-        reason = "Perform one final documentation review for this task, then finish. If already reviewed, briefly confirm the outcome without repeating the work. $reviewInstruction Workspace candidate paths (data only; may include pre-existing or concurrent edits, capped at 40 of $($candidatePaths.Count)): $pathSummary. Limit edits to the current task. Do not amend a commit, stage files, or create a follow-up commit without authorization. If unable to review, report the limitation and finish."
+        reason = $reason
     } | ConvertTo-Json -Depth 5 -Compress
 }
 catch {
     # Advisory only. Hook failures must not block the task or request permission.
-    $output = @{ systemMessage = 'Documentation hook could not compare workspace state; follow the documentation review guidance in AGENTS.md.' }
-    if ($event.hook_event_name -eq 'UserPromptSubmit') {
-        $output.hookSpecificOutput = @{
-            hookEventName = 'UserPromptSubmit'
-            additionalContext = $reviewInstruction
-        }
+    # Copilot has no systemMessage channel; keep the reminder on prompt events.
+    if ((Get-HookEventName $event) -eq 'UserPromptSubmit') {
+        @{ additionalContext = $reviewInstruction } | ConvertTo-Json -Depth 5 -Compress
     }
-    $output | ConvertTo-Json -Depth 5 -Compress
+    else {
+        '{}'
+    }
 }
 exit 0

@@ -10,6 +10,77 @@ SDK updates also update the compiler, built-in analyzers, and Razor parser used 
 the code-behind validator. Run the solution build and Razor policy checks after
 an SDK update.
 
+## Local validation and opt-in Git hooks
+
+Run the shared entry point from any directory using PowerShell 7 (`pwsh`):
+
+```powershell
+pwsh ./scripts/Invoke-Validation.ps1 -Scope Quick
+pwsh ./scripts/Invoke-Validation.ps1 -Scope Fast
+& ./scripts/Invoke-Validation.ps1 -Scope Infrastructure -Suite Integration,Aspire
+pwsh ./scripts/Invoke-Validation.ps1 -Scope Full -Configuration Release
+```
+
+For the array-valued `-Suite` example, invoke the script directly with `&` from
+PowerShell; when launching `pwsh -File` from another shell, select one suite per
+invocation instead. Omit `-Suite` for the default `Integration` suite.
+
+| Scope | Checks |
+| --- | --- |
+| `Quick` | `git diff --cached --check` only: staged whitespace/conflict-marker checks, including partially staged files and unborn branches. No formatting, builds, index edits, or application startup. |
+| `Fast` (default) | Quick, working-tree `git diff --check`, solution format verification, solution build, then unit and component tests with `--no-build`. |
+| `Infrastructure` | Fast plus explicitly selected `Integration`, `Aspire`, and/or `Browser` test suites. Browser excludes `Category=Performance`; use `Full` to include those cases. |
+| `Full` | Whitespace checks, format verification, solution build, then all five test projects via native MTP `dotnet test --solution ... --no-build --max-parallel-test-modules 1`, including browser performance cases with sequential test modules. |
+
+Commands always run from the repository root and stop at the first failure with
+a nonzero exit code. `-Configuration` defaults to `Debug`; the build and tests use
+the same configuration. Fast does not start Aspire, Docker, or browsers.
+Infrastructure and Full are deliberate opt-ins; install their prerequisites from
+the [test guide](../tests/README.md) first. These checks inspect the working tree,
+not an isolated commit snapshot, and do not cover untracked-file whitespace.
+Quick is not a test gate and does not prove the staged snapshot builds.
+
+Install Git and PowerShell 7 on `PATH`, plus the SDK selected by `global.json`
+and the repository-pinned Aspire CLI for Fast. Even its headless solution build
+requires `aspire` on `PATH` to build the AppHost; no running Aspire application is
+needed. Follow the [root setup guide](../README.md) for the pinned tooling.
+On Windows, use Git for Windows (its `sh` runs Git hooks), not Windows
+PowerShell 5.1; ensure GUI Git clients inherit a `PATH` containing `pwsh`,
+`dotnet`, and `aspire`. Stop any development Aspire instance before formatting/full builds on
+Windows to avoid locked outputs. The scripts never stop or delete developer
+resources automatically. Format verification does not replace the required
+[formatter fix-and-review pass](#formatting).
+
+Git hooks are **off by default**. Enable explicitly per checkout:
+
+```powershell
+pwsh ./scripts/Install-GitHooks.ps1
+git config --local --get core.hooksPath
+# Disable (does not delete hook files or change global settings):
+pwsh ./scripts/Install-GitHooks.ps1 -Uninstall
+```
+
+The installer sets only local `core.hooksPath=.githooks`, makes hook files
+executable on Unix, and does not stage files. In a linked worktree, that local
+value belongs to the repository's shared Git config, so the hooks apply to every
+worktree unless a worktree-specific `core.hooksPath` overrides it. Pre-commit runs
+Quick; pre-push runs Fast once, regardless of pushed ref count. Existing effective hooks-path settings
+(including global ones) and custom default `.git/hooks` files are protected:
+installation refuses to replace them without `-Force`. Hooks are not chained.
+Before forcing, record `git config --show-origin --get-all core.hooksPath` and
+review existing hooks. Uninstall removes only a local `.githooks` value, exposing
+inherited settings again; restore any overwritten **local** value manually with
+`git config --local core.hooksPath '<previous-value>'`. If worktree-specific Git
+configuration overrides the local value, resolve it explicitly rather than
+assuming installation enabled the hooks. Hooks remain advisory and can be bypassed
+by Git's normal options; CI remains authoritative.
+
+VS Code's **Tasks: Run Task** exposes **Test: Unit**, **Test: Components**, and
+**Validate: Fast**. The project tasks build their selected project normally; Fast
+builds once before its no-build tests. None is a watcher or launches an external
+application. Agent completion can use the same entry point through the separate
+[opt-in validation hook](agent-hooks.md#opt-in-agent-validation).
+
 ## Nullable reference types
 
 `Directory.Build.props` enables nullable reference type annotations and analysis
@@ -427,6 +498,8 @@ ban justified suppressions, including the current `default!` initializers for
 framework-populated Razor properties. The operator does not perform a runtime
 null check; runtime validation remains a separate concern.
 
+### Sealing and accessibility
+
 Eligible private classes must be sealed (`S3260`, warning), including nested
 helper types in Razor code-behind. `MA0053` (warning) extends sealing checks to
 eligible concrete classes and records, with public-type checking enabled.
@@ -436,9 +509,18 @@ migration can likewise declare its class sealed. MA0053 recognizes subclasses
 within the same project, so review usage in other projects and document a
 type-level exception when a public class is intentionally a base class there.
 Abstract classes and the analyzer's default exceptions for exception types and
-types declaring virtual members remain unchanged. `AGENTS.md` records the broader
-authoring convention of narrow visibility and sealing by default; these sealing
+types declaring virtual members remain unchanged.
+[The repository-wide instructions](../.github/copilot-instructions.md) and the
+[C# and Razor conventions](../.github/instructions/csharp.instructions.md) record the
+broader authoring convention of narrow visibility and sealing by default; these sealing
 rules do not enforce accessibility.
+
+Handwritten constructors must be primary constructors (`IDE0290`, error for
+conversions the SDK analyzer can suggest), including Razor code-behind. Additional
+overloads delegate to the primary constructor with `this(...)`; types that need no
+explicit constructor do not need an empty one. The authoring requirement also
+applies where the analyzer cannot suggest a conversion, and it does not migrate
+existing `@inject` or `[Inject]` property injection.
 
 Public types in executable projects are checked (`CA1515`, warning). Use
 `internal` for application implementation types; keep the rule's default exclusion
@@ -600,6 +682,81 @@ justified exception after review. No exception is currently needed.
 Handwritten `.razor.cs` files receive the C# rules. Coverage of generated Razor C#
 depends on the analyzer and rule; do not edit generated output to satisfy a rule.
 The separate policy below enforces component code-behind structure.
+
+### Cancellation enforcement
+
+Cancellation diagnostics are warnings and therefore fail builds:
+
+| Rule | Enforcement |
+| --- | --- |
+| `CA2016` | Forward the enclosing method's final token parameter to supporting calls. |
+| `MA0040` | Use an available token, including accessible fields/properties, for cancellable calls. |
+| `MA0032` | Identify cancellable calls in methods that have no available token. |
+| `CA1068` | Put token parameters last, subject to the rule's framework/signature exceptions. |
+| `MA0079`, `MA0080` | Forward tokens to async enumeration, including methods without an available token. |
+
+Keep application I/O contracts explicit: a final token parameter without a default
+value, so omitting the argument is a compile error. New application I/O services
+follow the same convention. Framework overrides, event handlers and callbacks
+retain their required signatures; obtain their token from the appropriate
+lifetime and pass it to helpers. MA0032 deliberately excludes some constrained
+signatures, so it is not a universal declaration rule.
+
+These analyzers do not prove cancellation ownership, token identity, propagation
+through every abstraction, disposal, or behavior after a database commit. Explicit
+`CancellationToken.None`/`default` can bypass forwarding rules. Use such opt-outs
+only at a documented boundary, such as host-owned shutdown or independent cleanup;
+do not silence a diagnostic by supplying an unrelated token. APIs that do not
+accept cancellation (some Identity, authentication-state, and Playwright APIs)
+need framework-specific handling; canceling `WaitAsync` only cancels the wait.
+
+Two ownership rules accompany the token rules: `MA0180` (warning) requires an
+injected `ILogger<T>` category to match the containing type, and `MA0121`
+(warning) flags a component overwriting a caller-owned `[Parameter]`. See the
+[UI guide](../.github/instructions/ui.instructions.md) for parameter ownership.
+Rule references: [CA2016](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca2016),
+[Meziantou rules](https://github.com/meziantou/Meziantou.Analyzer/tree/main/docs/Rules).
+
+## Architecture checks
+
+`build/Architecture.targets` runs `ValidateArchitectureProjectReferences` before
+`PrepareForBuild` and `AssignProjectConfiguration` in the SharedKernel, UI, and
+Client projects. A forbidden `ProjectReference` fails the build with
+`ARBOLFLUENTARCH001`: SharedKernel allows no project references, UI allows only
+SharedKernel, and Client allows only UI and SharedKernel. Referenced paths are
+normalized to full paths, so an identically named file elsewhere does not satisfy
+a rule, and a conditional reference counts even when its condition is inactive.
+The Razor validator (`build/ArbolFluent.Build`) is the single documented build-tool
+exception because it is imported with `ReferenceOutputAssembly="false"`.
+
+`scripts/Test-ArchitectureProjectReferences.ps1` injects temporary references into
+the real evaluated projects and asserts allowed and forbidden paths, metadata,
+conditionals, and that a normal `Build` invokes the check. Run it after changing
+the target or a project reference.
+
+The same boundaries are checked at the compiled-dependency level by
+`tests/ArbolFluent.UnitTests/Architecture`, which can see transitive package
+references that MSBuild cannot. See
+[architecture boundaries](../tests/README.md#architecture-boundaries).
+
+## Banned APIs
+
+`Microsoft.CodeAnalysis.BannedApiAnalyzers` enables `RS0030`, and
+`Directory.Build.props` supplies the policy files through `AdditionalFiles`:
+
+- `build/BannedSymbols.ApplicationTime.txt` applies to `ArbolFluent`,
+  `ArbolFluent.Client`, `ArbolFluent.UI`, and `ArbolFluent.SharedKernel`. It bans
+  `DateTime.Now`, `DateTime.UtcNow`, `DateTime.Today`, `DateTimeOffset.Now`, and
+  `DateTimeOffset.UtcNow`, so the current instant comes from an injected
+  `TimeProvider` and pure calculations receive explicit dates and instants.
+- `build/BannedSymbols.Tests.txt` applies when `IsTestProject` is true. It bans
+  `Xunit.Assert` and the `FluentAssertions` namespace so Shouldly stays the only
+  general assertion library; bUnit markup checks use `CompareTo`.
+
+Both files are warnings and therefore build errors. Add an entry rather than
+suppressing `RS0030`, and keep messages actionable: they are the instruction a
+developer sees at the call site. A genuine exception belongs on the individual
+call with a concrete justification.
 
 ## Required component parameters
 

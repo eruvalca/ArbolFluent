@@ -15,6 +15,71 @@ the CLI and editor find `global.json` and `ArbolFluent.slnx`.
 `ArbolFluent.Testing` is a shared support library, not a test project. It configures
 isolated AppHost builders for the Aspire and Playwright projects.
 
+The CI pipeline checks formatting and tooling on every pull request and `main`
+push. Pull-request changed paths select application build/tests and
+PostgreSQL/Aspire checks; documentation-only changes skip that expensive work.
+Browser jobs are never path-selected or required. Every `main` push also validates
+the publish artifacts; this template publishes but does not deploy. The full
+non-performance browser suite and the performance cases run daily at 06:17 UTC and
+on demand in
+[Nightly browser and performance validation](../.github/workflows/nightly-browser.yml).
+`scripts/Get-ValidationScope.ps1` is shared by CI and the local hooks described in
+the [build rules](../build/README.md#local-validation-and-opt-in-git-hooks).
+On its Ubuntu runner, it exports the test user's public HTTPS development
+certificate, adds it to the system CA store and Chromium's NSS database, and
+verifies both before testing. Only the public certificate is imported, using
+NSS's `P,,` trust for this self-signed server certificate.
+Creating the certificate alone does not trust it: Aspire's HTTPS readiness probes
+then fail with `UntrustedRoot`, preventing every AppHost-backed test from starting.
+Browser contexts accepting development certificates do not affect those probes.
+They also do not bypass Chromium's service-worker certificate checks. System-only
+trust lets Aspire start and ordinary pages load, but PWA worker registration
+fails. Chromium 146+ defaults to `$HOME/.local/share/pki/nssdb`, retaining
+`$HOME/.pki/nssdb` when that legacy database exists. The workflow handles both.
+See [Chromium's Linux certificate guidance](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/linux/cert_management.md).
+PWA tests observe the application's own registration rejection and report it
+directly instead of waiting only for a controller timeout; they do not register
+a replacement worker on the application's behalf. Their browser contexts use
+normal TLS validation so missing trust fails at navigation as well.
+
+CI retains TRX results for seven days and uploads browser screenshots/traces on
+failure. These diagnostics come from disposable test accounts and may include
+their cookies and form data; keep them within the repository's artifact access
+controls. Do not upload development browser profiles or Aspire dashboard state.
+Local reports remain opt-in.
+
+### Browser validation policy
+
+Every application pull-request and `main` run retains all unit/component tests, the
+PostgreSQL suite, and Aspire startup checks. Browser coverage is deliberately
+opt-in:
+
+- Changed paths, drafts, pull-request commits, `main` pushes, and merge groups
+  never automatically select a browser job.
+- Applying `run-full-browser` to a ready pull request runs the full Chromium
+  suite excluding `Category=Performance`, without rerunning unrelated jobs. New
+  commits also request it while the label remains. Removing the label stops
+  future requested runs. The check is never required for merging.
+- The `BrowserSmoke` trait remains available for focused local runs, not as a CI
+  gate. Documentation-only changes skip application validation as before;
+  unknown paths and PR file listings that reach GitHub's 3,000-file cap still
+  conservatively select non-browser application validation.
+- The nightly workflow runs the full non-performance suite and all
+  `Category=Performance` cases daily. Failures on `main`, including failed
+  performance regression assertions, create or comment on one rolling issue per
+  suite. Issues link to the run and commit but do not copy diagnostic payloads;
+  traces, screenshots, cookies, and form data remain access-controlled artifacts.
+  Browser and performance test jobs have no issue-write permission.
+
+`scripts/Test-BrowserWorkflowPolicy.ps1` asserts these properties against the
+workflow files, so change the workflows and that test together. The
+`run-full-browser` composite and the opt-in pull-request workflow exclude
+`Category=Performance`; the nightly workflow runs only those cases in its
+performance job, daily and on manual dispatch. A failed regression or correctness
+assertion produces the same performance issue; the workflow does not maintain a
+separate statistical baseline or trend history. Unfiltered local solution runs
+still execute every test.
+
 ## Supported stack
 
 Existing stack selected September 26, 2026; infrastructure/browser additions
@@ -105,6 +170,112 @@ MTP reports exit code 8 (zero tests); the outer `dotnet test` command returns a
 nonzero exit code.
 
 ## Configuration
+
+### Architecture boundaries
+
+The architecture policy has two enforcement points: MSBuild rejects forbidden
+evaluated project references during builds, and ArchUnitNET rejects forbidden
+compiled type dependencies during tests.
+
+[`AssemblyDependencyTests`](ArbolFluent.UnitTests/Architecture/AssemblyDependencyTests.cs)
+loads SharedKernel, UI, and Client once. Shouldly reports the descriptions of any
+violations. Subject selections must be nonempty, and forbidden targets include
+referenced types from libraries not loaded as subjects. No xUnit assertion adapter
+or production package reference is needed.
+
+Both project-reference and compiled application-dependency checks enforce:
+
+| Subject | Allowed dependencies on other ArbolFluent assemblies | Additional restrictions |
+| --- | --- | --- |
+| `ArbolFluent.SharedKernel` | None | No ASP.NET Core, JS interop, or Fluent UI types; no server infrastructure listed below. |
+| `ArbolFluent.UI` | `ArbolFluent.SharedKernel` | No server infrastructure listed below. |
+| `ArbolFluent.Client` | `ArbolFluent.UI`, `ArbolFluent.SharedKernel` | No server infrastructure listed below. |
+
+An assembly may use its own types. The application dependency rules recognize
+`ArbolFluent` and `ArbolFluent.*` assembly names, so newly referenced application
+assemblies must be deliberately allowed. The server-infrastructure restriction
+covers the `Microsoft.EntityFrameworkCore`, `Microsoft.AspNetCore.Identity`,
+`Npgsql`, and `Aspire` namespace trees. Shared UI can still use Blazor
+authorization APIs; `Microsoft.AspNetCore.Components.Authorization` is not server
+Identity. These are specific restrictions, not a complete guarantee of browser
+compatibility.
+
+The build check also rejects unused references and references supplied through
+imports or active conditions. Its sole exception is the existing Razor validator
+at `build/ArbolFluent.Build/ArbolFluent.Build.csproj`, with
+`ReferenceOutputAssembly="false"`, in Razor projects. This exception adds no
+application dependency. The target compares normalized paths, leaves
+server/hosting references unrestricted, and does not impose a NuGet package
+allowlist. See the [build policy](../build/README.md#architecture-checks)
+and its `Test-ArchitectureProjectReferences.ps1` regression script.
+
+[`ServerDependencyTests`](ArbolFluent.UnitTests/Architecture/ServerDependencyTests.cs)
+loads the server and enforces three additional design decisions:
+
+- **Services own database access.** Direct use of EF Core, Npgsql, ADO.NET
+  (`System.Data`), SQL Server client APIs, or `ApplicationDbContext` (the only
+  `DbContext` in the compiled model) belongs in
+  `ArbolFluent.Features.<Feature>.Services`/`Data`, shared `ArbolFluent.Data`,
+  `ArbolFluent.Migrations`, or the actual `Program` entry point for startup/readiness
+  wiring. Components are checked regardless of namespace; feature `Endpoints`
+  namespaces are checked explicitly. Pages and HTTP handlers call services.
+  Identity's `UserManager`/`SignInManager` APIs remain allowed. This does not
+  require a repository layer or prohibit services from using EF directly.
+- **Cross-feature dependencies use contracts.** Every top-level server feature,
+  including new ones, may depend on another feature only through
+  `ArbolFluent.Features.<OtherFeature>.Contracts` and its descendants. Contracts must
+  not depend on implementation types in any feature, including their own;
+  exposing a service/entity through a contract would defeat the boundary.
+  Introduce contracts only when a consumer needs them. There are currently no
+  cross-feature contracts, so that additional check runs when they exist;
+  feature discovery and each selected subject set must still be nonempty.
+  Server-only contracts stay on the server. Common infrastructure and startup
+  composition remain outside the feature-to-feature restriction.
+- **Top-level features have no dependency cycles.** Each whole
+  `ArbolFluent.Features.<Feature>` subtree is explicitly assigned to one ArchUnitNET
+  slice. Contracts count: `Account -> Errors -> Account` fails even if both
+  edges use contracts. Cycles among internal namespaces such as a feature's
+  `Models` and `Services` are allowed. Grouping is automatic, with no feature
+  name allowlist to update when a feature is added.
+
+Run only architecture checks with the repository's native MTP/xUnit syntax:
+
+```powershell
+dotnet test --project tests/ArbolFluent.UnitTests/ArbolFluent.UnitTests.csproj --configuration Debug --filter-class "ArbolFluent.UnitTests.Architecture.*"
+```
+
+The normal unit suite includes them automatically. For application changes, CI
+additionally runs this focused Debug check and exports its TRX report, then keeps
+the Release build and functional test layers. Debug preserves dependencies that compilation
+optimizations can remove. Compiled architecture violations fail tests and CI;
+project-reference violations fail standalone builds with `ARBOLFLUENTARCH001`.
+
+For example, a shared component acquiring an EF `DbContext` dependency fails
+the infrastructure rule with the dependent type in its failure description.
+Move persistence behind a shared contract and keep its implementation on the
+server. Do not bypass a failure with a skip, a blanket exclusion, or an empty
+selection. If the dependency is intentional, review the boundary change and
+update its narrow rule and rationale together.
+
+The compiled checks see type signatures and method-body dependencies. They do not
+inspect string-based reflection, runtime DI registrations, JavaScript, Razor render
+modes, or database behavior. Endpoint classification follows the feature
+`Endpoints` convention; an inline handler in `Program` remains inside its startup
+exception and needs review. Shared infrastructure is trusted and could conceal an
+indirect feature dependency, so these checks do not replace design review.
+Project checks see the items evaluated for the current build/configuration, not
+inactive configurations or references introduced later by custom execution targets.
+They do not check `PackageReference` declarations or the entire transitive closure
+of a third-party package. Compiler platform checks and runtime/component/integration
+tests still matter.
+
+Future policies, such as prohibiting persistence entities in HTTP payloads or
+restricting contract types to framework-independent DTOs/interfaces, require a
+separate design decision. Keep exceptions narrow and justified, and update the
+documented boundary alongside its checks when intentionally changing the design.
+
+See the [ArchUnitNET guide](https://archunitnet.readthedocs.io/en/latest/guide/)
+for namespace, type, member, cycle, and diagram-based rules.
 
 ### Choosing an integration layer
 

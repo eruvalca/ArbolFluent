@@ -214,7 +214,9 @@ semantic tables. Do not recreate Bootstrap utilities or add `!important` or
 ornamental animations. Use icons to clarify navigation/actions. Keep form
 labels before their controls and preserve Blazor/Identity behavior hooks when
 editing markup. Check narrow screens, keyboard focus, and text wrapping when
-changing layouts. See `AGENTS.md` for the authoring conventions.
+changing layouts. See the [repository instructions](.github/copilot-instructions.md)
+and the [UI instructions](.github/instructions/ui.instructions.md) for the authoring
+conventions.
 
 Setup references: [installation](https://www.fluentui-blazor.net/installation),
 [layout](https://www.fluentui-blazor.net/layout), and the
@@ -359,10 +361,25 @@ aspire wait pgadmin --timeout 120 --non-interactive
 Open its generated HTTP endpoint, expand **Servers → postgres → Databases → arbolfluent**.
 Aspire configures the connection and credentials. Stop it from the dashboard when done.
 
-## Agent tools and skills
+## Agent instructions, tools, and skills
 
-Shared repository skills live only in `.agents/skills`, supported by Codex and
-Copilot CLI. Copilot desktop inherits repository/CLI skills and MCP configuration.
+Agent instructions are GitHub Copilot only. Repository-wide rules live in
+[`.github/copilot-instructions.md`](.github/copilot-instructions.md), and
+path-scoped rules live in
+[`.github/instructions/*.instructions.md`](.github/instructions) with `applyTo`
+globs. Copilot loads a path-scoped file only when a file in scope matches, so the
+repository-wide file names every rule-owning file. Where a rule belongs, and which
+instruction sources Copilot discovers, is documented in
+[agent hook maintenance](build/agent-hooks.md#instruction-sources-and-scope).
+There is no `AGENTS.md`, `CLAUDE.md`, or `GEMINI.md`; do not add one. Instruction
+changes are not picked up by an active session — restart it.
+
+Project hooks are registered in `.github/hooks/*.json`:
+`documentation-review.json` runs the documentation review reminder and finishing
+pass, and `validation.json` provides the opt-in Fast validation described in
+[agent hook maintenance](build/agent-hooks.md). Hooks are advisory, not commit gates.
+
+Shared repository skills live only in `.agents/skills`, which Copilot discovers.
 The Aspire skills use the first-party **aspire-skills v0.0.3** bundle refreshed
 with CLI 13.6.0. Local corrections document 13.6's Project v2 diagnostic changes
 and the distinction between persistent-resource cleanup and volume deletion.
@@ -370,41 +387,41 @@ Reconcile those corrections when refreshing the skills; use installed package/AP
 evidence and current documentation when upstream guidance differs. Project v2
 migration remains deferred; the AppHost continues to use `AddProject`.
 
-The existing user-level Codex and Copilot MCP entries run **`aspire agent mcp`**.
-Keep a single entry per agent. No repository MCP duplicate or VS Code agent
-configuration is required. On a new machine, install Aspire on `PATH`, then:
-
-- Codex: `codex mcp add aspire -- aspire agent mcp` (unless already configured).
-- Copilot CLI: use `/mcp add` to add a local/stdio server named `aspire`, command
-  `aspire`, arguments `agent mcp`, at user scope. Its configuration is stored in
-  `~/.copilot/mcp-config.json` and is inherited by Copilot desktop.
-- Restart/reload the agent after configuration. Start the application from this
-  repository and use the Aspire MCP resource-list tool to verify the connection.
-  If several AppHosts are running, select this repository's AppHost explicitly.
+The repository registers the Aspire MCP server in [`.mcp.json`](.mcp.json) with
+`aspire agent mcp`. Keep a single entry per agent; do not add a duplicate user-level
+entry for a machine already using this repository's registration. To use a
+user-level entry instead, add a local/stdio server named `aspire` with command
+`aspire` and arguments `agent mcp` at user scope through Copilot's MCP settings or
+`/mcp add` in the CLI. Restart/reload the agent after configuration. Start the
+application from this repository and use the Aspire MCP resource-list tool to
+verify the connection. If several AppHosts are running, select this repository's
+AppHost explicitly.
 
 The checked-in skills require no additional installation on clone. To refresh the
-Aspire skills, use the matching CLI's `aspire agent init` with the **standard** skill
-location (`.agents/skills`), then review the diff. Avoid creating alternate copies under
-`.github`, `.codex`, or VS Code agent configuration. Keep user secrets, dashboard
-tokens, runtime `.aspire` state, telemetry exports, and temporary browser output out
-of source control.
+Aspire skills, use `aspire agent init` with the **standard** skill location
+(`.agents/skills`), then review the diff. Avoid creating alternate copies under
+`.github` or VS Code agent configuration. Keep user secrets, dashboard tokens,
+runtime `.aspire` state, telemetry exports, and temporary browser output out of
+source control.
 
 The [Fluent UI Blazor v5 usage skill](.agents/skills/fluentui-blazor-usage/SKILL.md)
 includes setup, data-grid, and theming references. The library is configured as
 described above; installing the skill alone does not configure an MCP server.
-When using its examples, follow
-`AGENTS.md` for code-behind, CSS, static account rendering, and central package
-versions. Verify version-sensitive APIs against the Fluent UI Blazor MCP server's
-documentation and the released package source. The v5.0.0 package's assembly file
-version is `5.0.0.26268`, also reported by the installed MCP server. Its version
-checker compares this assembly version against the NuGet version and reports a
-false mismatch; `5.0.0.26268` is not the NuGet package version. Some skill examples
-still use prerelease APIs, so verify component names and parameters against the
-installed package instead of copying them verbatim.
+When using its examples, follow the
+[C# and Razor conventions](.github/instructions/csharp.instructions.md) and the
+[UI instructions](.github/instructions/ui.instructions.md) for code-behind, CSS,
+static account rendering, and central package versions. Verify version-sensitive
+APIs against the Fluent UI Blazor MCP server's documentation and the released
+package source. The v5.0.0 package's assembly file version is `5.0.0.26268`, also
+reported by the installed MCP server. Its version checker compares this assembly
+version against the NuGet version and reports a false mismatch; `5.0.0.26268` is
+not the NuGet package version. Some skill examples still use prerelease APIs, so
+verify component names and parameters against the installed package instead of
+copying them verbatim.
 
 References: [Aspire MCP](https://aspire.dev/reference/cli/commands/aspire-agent-mcp/),
-[Codex skills](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills),
 [Copilot CLI skills](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-skills),
+[Copilot custom instructions](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/add-custom-instructions),
 [Copilot desktop](https://docs.github.com/en/copilot/how-tos/github-copilot-app/customize-github-copilot-app).
 
 ## Validation
