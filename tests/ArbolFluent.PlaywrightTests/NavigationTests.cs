@@ -1,19 +1,21 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using ArbolFluent.Testing;
 using Aspire.Hosting.Testing;
 using Microsoft.Playwright;
-using ArbolFluent.Testing;
 using Shouldly;
 using Xunit;
 
 namespace ArbolFluent.PlaywrightTests;
 
 [SuppressMessage("Maintainability", "CA1515:Consider making public types internal", Justification = "xUnit requires public test classes for discovery.")]
+[Collection<BrowserAppHostDefinition>]
 public sealed class NavigationTests(ITestOutputHelper output)
 {
     [Theory]
     [InlineData(1280)]
     [InlineData(390)]
+    [Trait("Category", "BrowserSmoke")]
     public async Task FluentNavigationPreservesDocumentAndCounterWorks(int width)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);

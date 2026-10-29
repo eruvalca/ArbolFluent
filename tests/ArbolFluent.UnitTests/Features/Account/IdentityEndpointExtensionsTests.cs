@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using ArbolFluent.Features.Account.Endpoints;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using ArbolFluent.Features.Account.Endpoints;
 using Shouldly;
 using Xunit;
 

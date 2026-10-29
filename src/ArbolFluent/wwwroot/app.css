@@ -117,6 +117,16 @@ hr {
     color: inherit;
 }
 
+/* Fluent's base control typography is 14px. Keep form text at 16px so mobile
+   browsers do not zoom on focus and dense forms stay readable. These pages use
+   native Identity inputs; if a Fluent form component replaces one, give it the
+   same size and keep the accessibility test's text-entry check satisfied. */
+.form-field input,
+.form-field select,
+.form-field textarea {
+    font-size: 1rem;
+}
+
 .form-field button {
     justify-self: start;
 }

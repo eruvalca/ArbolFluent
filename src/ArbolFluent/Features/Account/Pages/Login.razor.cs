@@ -1,10 +1,10 @@
+using ArbolFluent.Data;
+using ArbolFluent.Features.Account.Extensions;
+using ArbolFluent.Features.Account.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Identity;
-using ArbolFluent.Data;
-using ArbolFluent.Features.Account.Extensions;
-using ArbolFluent.Features.Account.Models;
 
 namespace ArbolFluent.Features.Account.Pages;
 

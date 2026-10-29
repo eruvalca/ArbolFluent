@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
+using ArbolFluent.Features.Account.Components;
+using ArbolFluent.Features.Account.Services;
 using Bunit;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Net.Http.Headers;
-using ArbolFluent.Features.Account.Components;
-using ArbolFluent.Features.Account.Services;
 using Shouldly;
 using Xunit;
 

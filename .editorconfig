@@ -33,6 +33,9 @@ csharp_prefer_braces = true:warning
 # Enforce C# formatting, including handwritten Razor code-behind.
 dotnet_diagnostic.IDE0055.severity = warning
 
+# Enforce the API policies supplied to each project through AdditionalFiles.
+dotnet_diagnostic.RS0030.severity = warning
+
 # IDE0001: Simplify Names
 dotnet_diagnostic.IDE0001.severity = warning
 
@@ -112,11 +115,22 @@ dotnet_diagnostic.S1075.severity = warning
 # Await available asynchronous alternatives where the analyzer reports them.
 dotnet_diagnostic.S6966.severity = warning
 
+# Flag blocking calls in asynchronous methods and methods that can become async.
+dotnet_diagnostic.MA0042.severity = warning
+dotnet_diagnostic.MA0045.severity = warning
+
 # Consume ValueTask instances correctly, normally by awaiting each instance once.
 dotnet_diagnostic.CA2012.severity = warning
 
 # Forward cancellation parameters to supporting calls; make intentional opt-outs explicit.
 dotnet_diagnostic.CA2016.severity = warning
+
+# Require available cancellation tokens, including component fields and properties.
+dotnet_diagnostic.MA0040.severity = warning
+dotnet_diagnostic.MA0032.severity = warning
+dotnet_diagnostic.MA0079.severity = warning
+dotnet_diagnostic.MA0080.severity = warning
+dotnet_diagnostic.CA1068.severity = warning
 
 # Fields already receive their type's default value before construction.
 dotnet_diagnostic.CA1805.severity = warning
@@ -132,6 +146,9 @@ dotnet_diagnostic.CA1863.severity = warning
 
 # Declare typed logging methods and let the source generator implement them.
 dotnet_diagnostic.CA1848.severity = warning
+
+# Match constructor-injected ILogger<T> categories to the containing type.
+dotnet_diagnostic.MA0180.severity = warning
 
 # Avoid expensive log-only argument evaluation when the level is disabled.
 dotnet_diagnostic.CA1873.severity = warning
@@ -208,6 +225,9 @@ dotnet_diagnostic.IDE0033.severity = warning
 # Prefer auto-properties over trivial backing-field/property pairs.
 dotnet_style_prefer_auto_properties = true:warning
 dotnet_diagnostic.IDE0032.severity = warning
+
+# Keep component parameter inputs separate from mutable component-owned state.
+dotnet_diagnostic.MA0121.severity = warning
 
 # Express updates with compound assignment, including null-coalescing assignment.
 dotnet_style_prefer_compound_assignment = true:warning
@@ -293,10 +313,25 @@ dotnet_diagnostic.MA0004.severity = none
 # IDE0130: Namespace does not match folder structure
 dotnet_diagnostic.IDE0130.severity = warning
 
+# RCS1205: Order named arguments according to the order of parameters
+dotnet_diagnostic.RCS1205.severity = warning
+
+# MA0007: Add a comma after the last value
+dotnet_diagnostic.MA0007.severity = warning
+
+# RCS1077: Optimize LINQ method call
+dotnet_diagnostic.RCS1077.severity = warning
+
+# IDE0120: Simplify LINQ expression
+dotnet_diagnostic.IDE0120.severity = warning
+
 [*.razor.cs]
 # Component accessibility must match Razor's generated public partial class.
 # Other C# rules continue to apply to code-behind.
 dotnet_diagnostic.CA1515.severity = none
+
+# MA0206: Remove unnecessary braces in type declaration
+dotnet_diagnostic.MA0206.severity = warning
 
 [src/ArbolFluent.AppHost/AppHost.cs]
 # Aspire's conventional entry point contains the implicit top-level Program type.

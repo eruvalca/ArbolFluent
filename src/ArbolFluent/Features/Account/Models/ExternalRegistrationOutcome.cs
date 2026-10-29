@@ -1,6 +1,6 @@
+using ArbolFluent.Data;
 using Microsoft.AspNetCore.Identity;
 using OneOf;
-using ArbolFluent.Data;
 
 namespace ArbolFluent.Features.Account.Models;
 

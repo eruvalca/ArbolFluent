@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
-using Microsoft.AspNetCore.Http;
 using ArbolFluent.Features.Account.Extensions;
+using Microsoft.AspNetCore.Http;
 using Shouldly;
 using Xunit;
 

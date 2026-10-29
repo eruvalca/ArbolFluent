@@ -1,5 +1,8 @@
 using System.Security.Claims;
 using System.Text.Json;
+using ArbolFluent.Data;
+using ArbolFluent.Features.Account.Pages;
+using ArbolFluent.Features.Account.Pages.Manage;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -7,9 +10,6 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Primitives;
-using ArbolFluent.Data;
-using ArbolFluent.Features.Account.Pages;
-using ArbolFluent.Features.Account.Pages.Manage;
 
 namespace ArbolFluent.Features.Account.Endpoints;
 
@@ -72,7 +72,7 @@ internal static partial class IdentityComponentsEndpointRouteBuilderExtensions
                 {
                     Id = userId,
                     Name = userName,
-                    DisplayName = userName
+                    DisplayName = userName,
                 });
                 return TypedResults.Content(optionsJson, contentType: "application/json");
             });

@@ -1,5 +1,3 @@
 namespace ArbolFluent.Components.Layout;
 
-public sealed partial class ReconnectModal
-{
-}
+public sealed partial class ReconnectModal;

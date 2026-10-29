@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using System.Text.Json;
+using ArbolFluent.Data;
+using ArbolFluent.Features.Account.Endpoints;
 using Bogus;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication;
@@ -13,8 +15,6 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using NSubstitute;
-using ArbolFluent.Data;
-using ArbolFluent.Features.Account.Endpoints;
 using Shouldly;
 using Xunit;
 
@@ -59,12 +59,17 @@ public sealed class IdentityEndpointBehaviorTests
 
         await context.InvokeAsync("/Account/Manage/LinkExternalLogin");
 
+        // Resolve the non-substituted context holders before the ordering check; only the
+        // substituted services themselves are interceptable.
+        var signIn = context.Identity.SignIn;
+        var authentication = context.Authentication;
+        var http = context.Http;
         Received.InOrder(() =>
         {
-            _ = context.Authentication.SignOutAsync(context.Http, IdentityConstants.ExternalScheme, null);
-            context.Identity.SignIn.ConfigureExternalAuthenticationProperties(
+            _ = authentication.SignOutAsync(http, IdentityConstants.ExternalScheme, null);
+            signIn.ConfigureExternalAuthenticationProperties(
                 "Example", "/app/Account/Manage/ExternalLogins?Action=LinkLoginCallback", "current-user");
-            _ = context.Authentication.ChallengeAsync(context.Http, "Example", properties);
+            _ = authentication.ChallengeAsync(http, "Example", properties);
         });
     }
 

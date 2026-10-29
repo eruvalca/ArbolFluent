@@ -1,5 +1,3 @@
 namespace ArbolFluent.Features.Account.Pages;
 
-public sealed partial class Lockout
-{
-}
+public sealed partial class Lockout;

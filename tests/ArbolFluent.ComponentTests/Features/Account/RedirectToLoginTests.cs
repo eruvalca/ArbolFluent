@@ -1,10 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
+using ArbolFluent.UI.Features.Account.Components;
 using Bunit;
 using Bunit.TestDoubles;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.DependencyInjection;
-using ArbolFluent.UI.Features.Account.Components;
 using Shouldly;
 using Xunit;
 

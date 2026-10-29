@@ -1,8 +1,8 @@
+using ArbolFluent.Data;
+using ArbolFluent.Features.Account.Extensions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
-using ArbolFluent.Data;
-using ArbolFluent.Features.Account.Extensions;
 
 namespace ArbolFluent.Features.Account.Pages.Manage;
 

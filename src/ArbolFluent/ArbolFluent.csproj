@@ -35,4 +35,8 @@
     </PackageReference>
   </ItemGroup>
 
+  <!-- Serve the generated Fluent module instead of the installed package's copy. -->
+  <Import Project="../../build/FluentAsset.targets" />
+  <Import Project="../../build/PwaAssets.targets" />
+
 </Project>

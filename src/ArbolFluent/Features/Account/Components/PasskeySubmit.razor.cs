@@ -1,6 +1,6 @@
+using ArbolFluent.Features.Account.Models;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Components;
-using ArbolFluent.Features.Account.Models;
 
 namespace ArbolFluent.Features.Account.Components;
 

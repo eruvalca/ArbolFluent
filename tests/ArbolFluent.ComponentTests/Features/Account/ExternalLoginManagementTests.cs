@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
+using ArbolFluent.Data;
+using ArbolFluent.Features.Account.Pages.Manage;
 using Bunit;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
@@ -7,8 +9,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using ArbolFluent.Data;
-using ArbolFluent.Features.Account.Pages.Manage;
 using Shouldly;
 using Xunit;
 

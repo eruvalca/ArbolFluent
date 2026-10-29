@@ -1,6 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Security.Claims;
+using ArbolFluent.Data;
+using ArbolFluent.Features.Account.Services;
 using Bogus;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -8,8 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
-using ArbolFluent.Data;
-using ArbolFluent.Features.Account.Services;
 using Shouldly;
 using Xunit;
 
