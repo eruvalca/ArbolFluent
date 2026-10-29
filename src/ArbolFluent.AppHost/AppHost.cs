@@ -1,6 +1,6 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddPostgres("postgres")
+var postgres = builder.AddPostgres("postgres-server")
     .WithDataVolume()
     .WithRepl();
 var database = postgres.AddDatabase("arbolfluentdb", "arbolfluent");

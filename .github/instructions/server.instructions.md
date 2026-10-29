@@ -36,7 +36,7 @@ procedures remain in the [root README](../../README.md).
 
 ## PostgreSQL, Identity storage, and readiness
 
-- PostgreSQL resource `postgres` hosts `arbolfluentdb` (physical database
+- PostgreSQL resource `postgres-server` hosts `arbolfluentdb` (physical database
   `arbolfluent`). Aspire injects `ConnectionStrings:arbolfluentdb`.
   Do not restore SQLite.
 - Use `IDbContextFactory<ApplicationDbContext>` for independent Blazor operations

@@ -238,7 +238,7 @@ and [JavaScript with static SSR](https://learn.microsoft.com/aspnet/core/blazor/
 ## Resource graph and database
 
 ```text
-postgres (PostgreSQL 18.3, managed data volume)
+postgres-server (PostgreSQL 18.3, managed data volume)
   ├─ arbolfluentdb (physical database: arbolfluent)
   │    └─ arbolfluent-migrations (EF database update)
   │         └─ arbolfluent (Blazor server + hosted WebAssembly)
@@ -249,7 +249,7 @@ After a normal startup, these dashboard states are expected:
 
 | Resource | Expected state | Meaning |
 | --- | --- | --- |
-| `postgres`, `arbolfluentdb` | Running / Healthy | PostgreSQL and the application database are ready. |
+| `postgres-server`, `arbolfluentdb` | Running / Healthy | PostgreSQL and the application database are ready. |
 | `arbolfluent-migrations` | Finished | The one-shot migration command completed successfully. It is not a long-running service. |
 | `arbolfluent` | Running / Healthy | The web application is ready and its database readiness check passes. |
 | `pgadmin` | Not started | Optional database UI; start it when needed. |
@@ -351,7 +351,7 @@ its databases or backups. The existing Git exclusions cover `.aspire/`, `*.db`,
 `*.db-wal`, and `*.db-shm`. No application telemetry changes are needed for run
 history. See [dashboard persistence](https://aspire.dev/dashboard/data-persistence/).
 
-For quick SQL inspection, select **REPL** on the running `postgres` resource. The
+For quick SQL inspection, select **REPL** on the running `postgres-server` resource. The
 dashboard opens the container's bundled `psql` with its existing credentials, so
 no local client or pgAdmin startup is required. Run `\connect arbolfluent` to switch
 from the initial `postgres` database to the application database. Exit with `\q`
@@ -369,7 +369,7 @@ aspire resource pgadmin start --non-interactive
 aspire wait pgadmin --timeout 120 --non-interactive
 ```
 
-Open its generated HTTP endpoint, expand **Servers → postgres → Databases → arbolfluent**.
+Open its generated HTTP endpoint, expand **Servers → postgres-server → Databases → arbolfluent**.
 Aspire configures the connection and credentials. Stop it from the dashboard when done.
 
 ## Progressive web app

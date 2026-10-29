@@ -4,7 +4,7 @@
     ".template.config/template.json", ".editorconfig", ".gitattributes", ".gitignore",
     ".mcp.json",
     ".playwright/cli.config.json", ".vscode/extensions.json", ".vscode/launch.json",
-    ".vscode/settings.json", ".githooks/pre-commit", ".githooks/pre-push",
+    ".vscode/settings.json", ".vscode/tasks.json", ".githooks/pre-commit", ".githooks/pre-push",
     "CodeMetricsConfig.txt",
     "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props",
     "global.json", "ArbolFluent.slnx", "aspire.config.json", "README.md"

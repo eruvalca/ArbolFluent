@@ -51,6 +51,8 @@ try {
             @{ name = 'MyNewApp2'; directory = 'Parent With Spaces/MyNewApp2' },
             @{ name = 'SameName'; directory = 'first/SameName' },
             @{ name = 'SameName'; directory = 'second/SameName' },
+            # Postgres is a valid name whose lowercase form previously collided with the server resource.
+            @{ name = 'Postgres'; directory = 'Postgres' },
             @{ name = 'ArbolFluent'; directory = 'Control' }
         )
         $seenGuids = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -102,6 +104,15 @@ try {
             [xml] $solution = Get-Content -Raw -LiteralPath (Join-Path $directory "$name.slnx")
             foreach ($project in $solution.SelectNodes('//Project')) {
                 Assert-Template (Test-Path -LiteralPath (Join-Path $directory $project.Path)) "Broken solution reference: $($project.Path)"
+            }
+            # Aspire resource names must stay unique for every supported application name.
+            $appHostSource = Get-Content -Raw -LiteralPath (Join-Path $directory "src/$name.AppHost/AppHost.cs")
+            $resourceNames = @([regex]::Matches($appHostSource, '(?:AddPostgres|AddDatabase|AddEFMigrations|AddProject<[^>]+>|WithName)\("([^"]+)"') |
+                ForEach-Object { $_.Groups[1].Value })
+            Assert-Template ($resourceNames.Count -ge 4) "Expected Aspire resource names in generated $name."
+            $seenResourceNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+            foreach ($resourceName in $resourceNames) {
+                Assert-Template ($seenResourceNames.Add($resourceName)) "Duplicate Aspire resource name '$resourceName' in generated $name."
             }
             Write-Host "PASS: $name in $($case.directory): $($actualPaths.Count) files; fresh secrets; exact content and naming."
         }
