@@ -110,6 +110,59 @@ control. Do not introduce nested `Directory.Packages.props` files or per-project
 `VersionOverride` entries without a documented need: NuGet automatically imports
 only the nearest central package file.
 
+## Fluent UI lifetime compatibility
+
+The server imports `build/FluentAsset.targets` to serve a generated copy of the
+pinned Fluent UI 5.0.1 initializer. Its theme-string cache retains old theme
+objects; the patch substitutes a weak theme-object cache. Fluent 5.0.0 also
+needed a FAST definition-observer replacement, but the FAST bundled with 5.0.1
+holds pending elements through `WeakRef` and a one-shot template subscription,
+so that part was removed.
+
+`ArbolFluent.Build patch-fluent` verifies the original bundle's SHA-256 before
+applying the narrowly scoped replacement. A package upgrade with a different
+bundle fails explicitly: reassess the upstream behavior and remove the
+compatibility fix when it is no longer needed. Do not weaken the checksum check or
+edit the installed NuGet package. The generated module lives under the server's
+`IntermediateOutputPath`, is registered for cleaning, and receives new static
+asset fingerprint/integrity metadata. Browser validation must use the served
+asset and verify collection of removed controls, themes, and enhanced navigation.
+
+## PWA build assets
+
+The server imports `build/PwaAssets.targets`. Before `AssignTargetPaths`,
+`GeneratePwaWorker` hashes maintained application C#, Razor, JavaScript, CSS,
+HTML, JSON, manifest, PNG, and project files under `src`, plus central build and
+package configuration and build targets/scripts. It excludes `bin` and `obj`.
+New/deleted inputs participate on the next build; output is rewritten only when
+the content changes. Design-time builds skip generation.
+
+The target prepends that version to the worker source in `build/PwaWorker.js`.
+The generated `obj/<configuration>/<framework>/pwa/service-worker.js` is registered
+as a static web asset before discovery and copied into published `wwwroot`.
+`RegisterPwaWorker` corrects the discovered asset's content root after
+`ResolveCoreStaticWebAssets`, so the development file provider resolves the
+generated file in `obj` instead of looking for a nonexistent file in `wwwroot`.
+Its input list and worker file are registered with `FileWrites` for cleanup.
+Do not edit generated files or bump a handwritten worker version. If new asset
+types or build inputs are introduced, extend the input list deliberately.
+
+The stable `/service-worker.js` URL includes the generated version, so
+application-only changes also trigger browser update detection. Registration uses
+`updateViaCache: none` to revalidate the worker; deployment proxies must also
+permit fresh responses at that URL. Publish the complete output together.
+The worker caches only the three public offline fallback assets, removes only
+old `arbolfluent-offline-*` caches on activation, and waits for user consent while
+an existing worker still controls open tabs. Do not apply the standalone Blazor
+WebAssembly template's cached `index.html` strategy to this mixed SSR/Auto app.
+
+Validate both a solution build and `dotnet publish src/ArbolFluent/ArbolFluent.csproj
+--configuration Release --output artifacts/pwa-publish`. Confirm the manifest,
+icons, generated worker, and fallback assets are present. Browser checks run
+against the actual Aspire-hosted application with disposable storage;
+see the [test guide](../tests/README.md#choosing-an-integration-layer) and the
+PWA and accessibility cases in `ArbolFluent.PlaywrightTests`.
+
 ## Formatting
 
 For every change set, including configuration and documentation changes, run from

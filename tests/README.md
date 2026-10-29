@@ -10,7 +10,7 @@ the CLI and editor find `global.json` and `ArbolFluent.slnx`.
 | `ArbolFluent.ComponentTests` | Account sign-in and management workflows, validation, shared account components, navigation, error request IDs, and the shared UI's `Counter`, using bUnit. |
 | `ArbolFluent.IntegrationTests` | Focused in-process integration with real PostgreSQL via Testcontainers: migrations, EF/Identity stores, persistence across contexts, and dependency behavior. |
 | `ArbolFluent.AspireIntegrationTests` | The real AppHost, database/migration startup dependencies, readiness, resource endpoints, and cross-process HTTP behavior. |
-| `ArbolFluent.PlaywrightTests` | Real Chromium: Fluent icons/web components, desktop/mobile navigation, drawer behavior, counter interaction, and document continuity. |
+| `ArbolFluent.PlaywrightTests` | Real Chromium: Fluent icons/web components, desktop/mobile navigation, drawer behavior, counter interaction, document continuity, progressive-web-app installation, consent-based updates and the offline fallback, and axe heading-order/color-contrast checks with a 16px text-entry minimum. |
 
 `ArbolFluent.Testing` is a shared support library, not a test project. It configures
 isolated AppHost builders for the Aspire and Playwright projects.
@@ -100,6 +100,7 @@ verified October 2, 2026:
 | Aspire.Hosting.Testing (matches AppHost) | 13.6.0 |
 | Testcontainers.PostgreSql | 4.15.0 |
 | Microsoft.Playwright | 1.63.0 |
+| Deque.AxeCore.Playwright (accessibility) | 4.14.0 |
 | C# Dev Kit (stable baseline) | 3.40.210 |
 
 Package versions are centralized in `Directory.Packages.props`. Explicit MTP
