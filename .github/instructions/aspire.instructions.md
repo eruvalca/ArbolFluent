@@ -55,11 +55,12 @@ setup and runtime procedures remain in the [root README](../../README.md).
 
 ## Publish and workflows
 
-- `aspire publish` validates the publish artifacts and the migration bundle; the
-  CI `publish` job does that on main and on pull requests that change
-  publish-relevant inputs. This template publishes but does not deploy; do not add
-  a deployment job or cloud-specific wiring without an explicit decision to adopt
-  a hosting target.
+- `aspire publish` runs the publish pipeline; the CI `publish` job does that on main
+  and on pull requests that change publish-relevant inputs. The AppHost declares no
+  compute environment, so the pipeline succeeds without emitting artifacts — treat
+  it as a smoke check until a hosting target is chosen. This template does not
+  deploy; do not add a deployment job or cloud-specific wiring without an explicit
+  decision to adopt a hosting target.
 - Workflows select work through `scripts/Get-ValidationScope.ps1`. Browser
   validation is opt-in per pull request through the `run-full-browser` label and
   is never merge-blocking; the nightly workflow owns the full browser and

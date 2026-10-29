@@ -403,7 +403,7 @@ time awaiting I/O, measure before increasing the multiplier or choosing
 
 MTP's `--max-parallel-test-modules` controls parallel execution of test modules
 separately and defaults to the processor count. With multiple test projects,
-budget module concurrency together with each project's xUnit concurrency.
+balance module concurrency together with each project's xUnit concurrency.
 
 ### Writing component tests
 
