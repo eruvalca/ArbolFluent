@@ -83,10 +83,11 @@ the [test README](../../tests/README.md).
   disable the resource reaper. Playwright uses the library API with Shouldly to
   preserve our MTP runner; wait for observable UI state instead of fixed sleeps.
   Missing prerequisites must fail with an actionable error, not silently skip.
-- Tag browser cases by scope: `Category=BrowserSmoke` for the fast suite that a
-  pull request may run, and `Category=Performance` for the nightly-only cases.
-  Untagged browser cases run in neither filtered selection, so tag every new
-  Playwright test deliberately.
+- Tag browser cases by scope: `Category=BrowserSmoke` marks the focused suite for
+  local runs, not a CI gate, and `Category=Performance` marks the nightly-only
+  cases that both the opt-in pull-request and nightly full-browser jobs exclude.
+  Those jobs run every non-performance browser case, so untagged tests still get
+  CI coverage; reserve `Performance` for cases that must run only nightly.
 - Report the commands run and actual passed, failed, and skipped counts. If
   validation is blocked, state the blocker rather than claiming success. See
   [tests/README.md](../../tests/README.md) for runner details, reports, and

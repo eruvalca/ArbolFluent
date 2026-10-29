@@ -35,8 +35,10 @@ setup and runtime procedures remain in the [root README](../../README.md).
   managed EF tool version in `AppHost.cs` aligned with each other and with the
   documented setup in `README.md`. The manifests own those versions; do not
   restate them here.
-  Use `.agents/skills` as the shared skill location; retain the single user-level
-  `aspire agent mcp` entry for each agent rather than adding repository duplicates.
+  Use `.agents/skills` as the shared skill location. The repository registers the
+  Aspire MCP server in `.mcp.json`; keep one effective entry per agent and do not
+  add a duplicate user-level server. Follow the registration procedure documented
+  in `README.md`.
 - pgAdmin is an explicit-start, run-mode developer tool. See `README.md` for
   endpoint discovery, data persistence, and telemetry. PostgreSQL's **REPL**
   command opens `psql`; use `\connect arbolfluent` to select the application
