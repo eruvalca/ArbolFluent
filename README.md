@@ -361,6 +361,31 @@ aspire wait pgadmin --timeout 120 --non-interactive
 Open its generated HTTP endpoint, expand **Servers → postgres → Databases → arbolfluent**.
 Aspire configures the connection and credentials. Stop it from the dashboard when done.
 
+## Progressive web app
+
+The server imports `build/PwaAssets.targets`, which generates a versioned
+`service-worker.js` from hashed application inputs and serves it at a stable URL.
+Installing from the browser adds the app to the home screen or desktop; the
+install affordance is hidden when the app already runs standalone.
+
+The worker caches only three public fallback assets (`offline.html`,
+`pwa/offline.css`, `icons/icon-192.png`). Navigations are never cached: when a
+page load or an enhanced-navigation GET fails, the app serves the offline screen
+with a `503` so an interrupted load cannot be mistaken for a successful
+operation. Signing in and saving data always need the server.
+
+When a new version is ready the shell shows an update notice. Nothing reloads
+until you choose **Reload to update**, and only the tab that asked reloads; other
+tabs keep their state and prompt separately. See
+[build/README.md](build/README.md#pwa-build-assets) for generation rules and the
+[UI instructions](.github/instructions/ui.instructions.md) for the constraints.
+
+Verify a publish includes the worker, manifest, icons, and fallback assets:
+
+```powershell
+dotnet publish src/ArbolFluent/ArbolFluent.csproj --configuration Release --output artifacts/pwa-publish
+```
+
 ## Agent instructions, tools, and skills
 
 Agent instructions are GitHub Copilot only. Repository-wide rules live in
@@ -425,6 +450,21 @@ References: [Aspire MCP](https://aspire.dev/reference/cli/commands/aspire-agent-
 [Copilot desktop](https://docs.github.com/en/copilot/how-tos/github-copilot-app/customize-github-copilot-app).
 
 ## Validation
+
+The shared entry point selects the right checks for a scope and stops at the
+first failure:
+
+```powershell
+pwsh ./scripts/Invoke-Validation.ps1 -Scope Quick          # staged whitespace checks only
+pwsh ./scripts/Invoke-Validation.ps1 -Scope Fast           # format verify, build, unit + component tests
+& ./scripts/Invoke-Validation.ps1 -Scope Infrastructure -Suite Integration,Aspire
+pwsh ./scripts/Invoke-Validation.ps1 -Scope Full -Configuration Release
+```
+
+`Fast` is the default and needs no Docker, browser, or running Aspire instance.
+Git hooks are opt-in and off by default; see
+[build/README.md](build/README.md#local-validation-and-opt-in-git-hooks) to enable
+them and for the full scope table.
 
 For every change set, run formatting from the repository root, review the fixes,
 and require a clean verification pass. Stop Aspire first on Windows. After code
