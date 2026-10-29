@@ -45,7 +45,10 @@ jobs:
       - name: Run performance cases
         shell: pwsh
         run: |
-          dotnet test --project "tests/ArbolFluent.PlaywrightTests/ArbolFluent.PlaywrightTests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 --output Detailed --filter-trait Category=Performance --report-trx --results-directory "$env:RUNNER_TEMP/arbolfluent-test-results"
+          # This template ships no Category=Performance cases yet, so a filtered run
+          # reports "Zero tests ran" (exit 8). Ignore only that code: a real failing
+          # case still fails the job, and new performance cases are picked up here.
+          dotnet test --project "tests/ArbolFluent.PlaywrightTests/ArbolFluent.PlaywrightTests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 --output Detailed --filter-trait Category=Performance --ignore-exit-code 8 --report-trx --results-directory "$env:RUNNER_TEMP/arbolfluent-test-results"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Retain test results
         if: ${{ !cancelled() }}

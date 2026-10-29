@@ -80,6 +80,11 @@ assertion produces the same performance issue; the workflow does not maintain a
 separate statistical baseline or trend history. Unfiltered local solution runs
 still execute every test.
 
+This template currently ships no `Category=Performance` cases, so the nightly
+performance selection reports "Zero tests ran". That step ignores only exit code 8
+(no tests matched) and still fails on any real failure; add performance cases with
+the trait before relying on that job for measurements.
+
 ## Supported stack
 
 Existing stack selected September 26, 2026; infrastructure/browser additions
