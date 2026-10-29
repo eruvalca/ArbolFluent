@@ -40,7 +40,9 @@ procedures remain in the [root README](../../README.md).
   `arbolfluent`). Aspire injects `ConnectionStrings:arbolfluentdb`.
   Do not restore SQLite.
 - Use `IDbContextFactory<ApplicationDbContext>` for independent Blazor operations
-  and dispose created contexts. Preserve Identity schema version 3 and passkeys.
+  and dispose created contexts; `Program` registers the factory for exactly that,
+  so prefer it over sharing a scoped context across components. Preserve Identity
+  schema version 3 and passkeys.
 - `/health` includes database readiness; `/alive` checks process liveness
   independently of database availability. Preserve the bounded database
   readiness check and Aspire's monitoring of `/health`. Both endpoints are

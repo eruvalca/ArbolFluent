@@ -28,7 +28,9 @@ Account tests also follow the [test guide](tests.instructions.md).
 - `BlazorDisableThrowNavigationException` is enabled. After redirecting, return
   or otherwise terminate the current branch when subsequent work must not
   execute. Do not rely on navigation throwing to stop an account operation.
-- Keep the account services in `Features/Account/Services` as the only account
-  code that calls `UserManager`/`SignInManager` for multi-step workflows, and
-  preserve the partial-completion outcomes that distinguish a completed write
-  from a failed follow-up.
+- Account services in `Features/Account/Services` own the workflows whose result is a
+  named outcome (`SignInOutcome`, `RegistrationOutcome`, `EmailChangeOutcome`, …), so
+  a completed write stays distinguishable from a failed follow-up. Pages and the
+  Identity endpoint handlers also call `UserManager`/`SignInManager` directly,
+  including for Identity's own endpoint flows; both patterns are allowed, so
+  preserve the existing split instead of moving every call into a service.

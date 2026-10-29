@@ -118,25 +118,13 @@ hr {
 }
 
 /* Fluent's base control typography is 14px. Keep form text at 16px so mobile
-   browsers do not zoom on focus and dense forms stay readable. The token override
-   reaches the component's shadow input; the part selector covers components that
-   hardcode their control size. */
+   browsers do not zoom on focus and dense forms stay readable. These pages use
+   native Identity inputs; if a Fluent form component replaces one, give it the
+   same size and keep the accessibility test's text-entry check satisfied. */
 .form-field input,
 .form-field select,
-.form-field textarea,
-fluent-text-field,
-fluent-number-field,
-fluent-text-area,
-fluent-select,
-fluent-combobox {
+.form-field textarea {
     --fontSizeBase300: 1rem;
-    font-size: 1rem;
-}
-
-fluent-text-field::part(control),
-fluent-number-field::part(control),
-fluent-text-area::part(control),
-fluent-select::part(control) {
     font-size: 1rem;
 }
 
