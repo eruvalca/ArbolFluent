@@ -628,11 +628,23 @@ documented exception: the authenticator's `otpauth` URI constant has a field-lev
 single-statement pragma. The surrounding methods and Razor code-behind remain
 checked; preserve the authenticator URI format and Razor's virtual-path convention.
 
-Prefer awaited asynchronous alternatives where reported by `S6966` (warning),
-including host and build-tool entry points. Razor code-behind should use awaitable
-event handlers and asynchronous lifecycle overrides when awaiting I/O, preserving
-framework contracts. Ordinary `await` remains appropriate for component code;
-this rule does not introduce a `ConfigureAwait` requirement.
+Prefer awaited asynchronous alternatives where reported by `S6966`, `MA0042`, and
+`MA0045` (warnings), including host and build-tool entry points.
+[`MA0042`](https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0042.md)
+checks blocking calls in methods that are async or can become async without
+changing their return type;
+[`MA0045`](https://github.com/meziantou/Meziantou.Analyzer/blob/main/docs/Rules/MA0045.md)
+also checks synchronous methods that need a return-type change. Await the work
+through the call chain and forward cancellation. Razor code-behind should use
+awaitable event handlers and asynchronous lifecycle overrides when awaiting I/O,
+preserving framework contracts. Ordinary `await` remains appropriate for component
+code; these rules do not introduce a `ConfigureAwait` requirement.
+
+Style analyzers enforce `RCS1205` (order named arguments by parameter position),
+`MA0007` (trailing comma in multi-line collections and argument lists), `RCS1077`
+and `IDE0120` (simplify LINQ expressions), and `MA0206` (declare a body-less type
+with a semicolon). They are warnings and therefore build errors; `dotnet format`
+fixes most of them, so review its edits instead of suppressing a diagnostic.
 
 Unnecessary default field initialization is checked (`CA1805`, warning). Omit
 redundant initializers such as `= 0` for an `int` field, including in Razor
