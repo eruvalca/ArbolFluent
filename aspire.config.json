@@ -1,0 +1,6 @@
+{
+  "appHost": {
+    "language": "csharp",
+    "path": "src/ArbolFluent.AppHost/ArbolFluent.AppHost.csproj"
+  }
+}
