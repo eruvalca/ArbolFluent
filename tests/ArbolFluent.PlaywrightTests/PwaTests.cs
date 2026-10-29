@@ -38,7 +38,9 @@ public sealed class PwaTests(ITestOutputHelper output)
     private async Task RunInBrowserAsync(int width, Func<IPage, IBrowserContext, Task> verify, CancellationToken cancellationToken)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromMinutes(3));
+        // Starting an AppHost, PostgreSQL, migrations and Chromium dominates these
+        // cases; a busy machine can push startup past three minutes.
+        timeout.CancelAfter(TimeSpan.FromMinutes(5));
         await using var builder = await TestAppHost.CreateAsync(timeout.Token);
         await using var app = await builder.BuildAsync(timeout.Token);
         await app.StartAsync(timeout.Token);
