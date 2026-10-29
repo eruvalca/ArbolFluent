@@ -59,12 +59,17 @@ public sealed class IdentityEndpointBehaviorTests
 
         await context.InvokeAsync("/Account/Manage/LinkExternalLogin");
 
+        // Resolve the non-substituted context holders before the ordering check; only the
+        // substituted services themselves are interceptable.
+        var signIn = context.Identity.SignIn;
+        var authentication = context.Authentication;
+        var http = context.Http;
         Received.InOrder(() =>
         {
-            _ = context.Authentication.SignOutAsync(context.Http, IdentityConstants.ExternalScheme, null);
-            context.Identity.SignIn.ConfigureExternalAuthenticationProperties(
+            _ = authentication.SignOutAsync(http, IdentityConstants.ExternalScheme, null);
+            signIn.ConfigureExternalAuthenticationProperties(
                 "Example", "/app/Account/Manage/ExternalLogins?Action=LinkLoginCallback", "current-user");
-            _ = context.Authentication.ChallengeAsync(context.Http, "Example", properties);
+            _ = authentication.ChallengeAsync(http, "Example", properties);
         });
     }
 
