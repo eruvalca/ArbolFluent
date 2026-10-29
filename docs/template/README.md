@@ -34,9 +34,10 @@ references or invalid Aspire identifiers. The length limit leaves room for
 database/resource suffixes and hostname labels; keep the overall path reasonably
 short for Windows tooling.
 
-For `MyNewApp`, project/namespace names use `MyNewApp`, the web resource and physical
-database use `mynewapp`, the connection key uses `mynewappdb`, migrations use
-`mynewapp-migrations`, and the hostname is `mynewapp.dev.localhost`. Ports stay
+For `MyNewApp`, project/namespace names use `MyNewApp`, the web resource uses
+`mynewapp-web`, the physical database uses `mynewapp`, the connection key uses
+`mynewappdb`, migrations use `mynewapp-migrations`, and the hostname is
+`mynewapp.dev.localhost`. Ports stay
 dynamic. Two independently generated applications receive different secrets IDs,
 even with the same name. Use distinct names when running applications concurrently:
 cookies are shared across ports on one hostname. Passkeys are bound to the site's
@@ -191,7 +192,7 @@ instance for this manual workflow.
 
 ```powershell
 aspire start --launch-profile https --non-interactive
-aspire wait templatesmoke --timeout 120 --non-interactive
+aspire wait templatesmoke-web --timeout 120 --non-interactive
 aspire describe --non-interactive
 ```
 

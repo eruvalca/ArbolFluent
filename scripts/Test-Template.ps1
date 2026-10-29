@@ -51,8 +51,9 @@ try {
             @{ name = 'MyNewApp2'; directory = 'Parent With Spaces/MyNewApp2' },
             @{ name = 'SameName'; directory = 'first/SameName' },
             @{ name = 'SameName'; directory = 'second/SameName' },
-            # Postgres is a valid name whose lowercase form previously collided with the server resource.
+            # Postgres and PgAdmin are valid names whose lowercase forms could collide with infrastructure resources.
             @{ name = 'Postgres'; directory = 'Postgres' },
+            @{ name = 'PgAdmin'; directory = 'PgAdmin' },
             @{ name = 'ArbolFluent'; directory = 'Control' }
         )
         $seenGuids = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -109,7 +110,9 @@ try {
             $appHostSource = Get-Content -Raw -LiteralPath (Join-Path $directory "src/$name.AppHost/AppHost.cs")
             $resourceNames = @([regex]::Matches($appHostSource, '(?:AddPostgres|AddDatabase|AddEFMigrations|AddProject<[^>]+>|WithName)\("([^"]+)"') |
                 ForEach-Object { $_.Groups[1].Value })
-            Assert-Template ($resourceNames.Count -ge 4) "Expected Aspire resource names in generated $name."
+            # WithPgAdmin creates this resource implicitly in run mode.
+            $resourceNames += 'pgadmin'
+            Assert-Template ($resourceNames.Count -ge 5) "Expected Aspire resource names in generated $name."
             $seenResourceNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
             foreach ($resourceName in $resourceNames) {
                 Assert-Template ($seenResourceNames.Add($resourceName)) "Duplicate Aspire resource name '$resourceName' in generated $name."

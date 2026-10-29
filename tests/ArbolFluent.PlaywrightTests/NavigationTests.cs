@@ -23,14 +23,14 @@ public sealed class NavigationTests(ITestOutputHelper output)
         await using var builder = await TestAppHost.CreateAsync(timeout.Token);
         await using var app = await builder.BuildAsync(timeout.Token);
         await app.StartAsync(timeout.Token);
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("arbolfluent", timeout.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("arbolfluent-web", timeout.Token);
 
         using var playwright = await Playwright.CreateAsync();
         await using var browser = await playwright.Chromium.LaunchAsync();
         // The isolated local AppHost uses the development HTTPS certificate.
         await using var context = await browser.NewContextAsync(new()
         {
-            BaseURL = app.GetEndpoint("arbolfluent", "https").ToString(),
+            BaseURL = app.GetEndpoint("arbolfluent-web", "https").ToString(),
             IgnoreHTTPSErrors = true,
             ViewportSize = new() { Width = width, Height = 900 },
         });

@@ -21,10 +21,10 @@ public sealed class ApplicationStartupTests
             .ShouldBeEmpty();
         await using var app = await builder.BuildAsync(timeout.Token);
         await app.StartAsync(timeout.Token);
-        await app.ResourceNotifications.WaitForResourceHealthyAsync("arbolfluent", timeout.Token);
+        await app.ResourceNotifications.WaitForResourceHealthyAsync("arbolfluent-web", timeout.Token);
         await app.ResourceNotifications.WaitForResourceAsync("arbolfluent-migrations", KnownResourceStates.Finished, timeout.Token);
 
-        using var client = app.CreateHttpClient("arbolfluent", "https");
+        using var client = app.CreateHttpClient("arbolfluent-web", "https");
         foreach (var path in new[] { "/health", "/alive", "/", "/Account/Login" })
         {
             using var response = await client.GetAsync(new Uri(path, UriKind.Relative), timeout.Token);
