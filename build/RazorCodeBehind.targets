@@ -1,7 +1,6 @@
 <Project>
   <PropertyGroup>
     <_ArbolFluentBuildProject>$(MSBuildThisFileDirectory)ArbolFluent.Build/ArbolFluent.Build.csproj</_ArbolFluentBuildProject>
-    <_ArbolFluentBuildAssembly>$(MSBuildThisFileDirectory)ArbolFluent.Build/bin/$(Configuration)/net10.0/ArbolFluent.Build.dll</_ArbolFluentBuildAssembly>
     <_ArbolFluentDotNetHost Condition="'$(DotNetHostPath)' != ''">$(DotNetHostPath)</_ArbolFluentDotNetHost>
     <_ArbolFluentDotNetHost Condition="'$(_ArbolFluentDotNetHost)' == ''">dotnet</_ArbolFluentDotNetHost>
   </PropertyGroup>
@@ -9,6 +8,7 @@
   <ItemGroup>
     <ProjectReference Include="$(_ArbolFluentBuildProject)"
                       ReferenceOutputAssembly="false"
+                      OutputItemType="_ArbolFluentBuildAssembly"
                       Private="false"
                       PrivateAssets="all"
                       GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;PublishAot;PublishTrimmed" />
@@ -31,7 +31,7 @@
       <FileWrites Include="$(_ArbolFluentComponentManifest);$(_ArbolFluentCompileManifest)" />
     </ItemGroup>
     <!-- A separate process avoids locking the validator's assemblies in reusable MSBuild nodes. -->
-    <Exec Command="&quot;$(_ArbolFluentDotNetHost)&quot; &quot;$(_ArbolFluentBuildAssembly)&quot; &quot;$(MSBuildProjectDirectory)&quot; &quot;$(RootNamespace)&quot; &quot;$(DefineConstants)&quot; &quot;$(_ArbolFluentComponentManifest)&quot; &quot;$(_ArbolFluentCompileManifest)&quot;"
+    <Exec Command="&quot;$(_ArbolFluentDotNetHost)&quot; &quot;@(_ArbolFluentBuildAssembly)&quot; &quot;$(MSBuildProjectDirectory)&quot; &quot;$(RootNamespace)&quot; &quot;$(DefineConstants)&quot; &quot;$(_ArbolFluentComponentManifest)&quot; &quot;$(_ArbolFluentCompileManifest)&quot;"
           Condition="'@(RazorComponent)' != ''" />
   </Target>
 </Project>

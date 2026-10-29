@@ -13,7 +13,7 @@
                           Condition="'%(StaticWebAsset.SourceId)' == 'Microsoft.FluentUI.AspNetCore.Components' and '%(StaticWebAsset.AssetTraitValue)' == 'JSLibraryModule'" />
     </ItemGroup>
     <Error Condition="'@(_FluentOriginal->Count())' != '1'" Text="Expected exactly one Fluent initializer module to apply the pinned lifetime fix." />
-    <Exec Command="&quot;$(_ArbolFluentDotNetHost)&quot; &quot;$(_ArbolFluentBuildAssembly)&quot; patch-fluent &quot;@(_FluentOriginal)&quot; &quot;$(_FluentPatched)&quot;" />
+    <Exec Command="&quot;$(_ArbolFluentDotNetHost)&quot; &quot;@(_ArbolFluentBuildAssembly)&quot; patch-fluent &quot;@(_FluentOriginal)&quot; &quot;$(_FluentPatched)&quot;" />
     <ItemGroup>
       <_FluentCandidate Include="@(_FluentOriginal->'$(_FluentPatched)')">
         <ContentRoot>$(_FluentRoot)</ContentRoot>

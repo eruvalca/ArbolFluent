@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $publisher = "$PSScriptRoot/Publish-NightlyValidationIssue.ps1"
 $commit = '0123456789abcdef0123456789abcdef01234567'
-$runUrl = 'https://github.com/eruvalca/ArbolFluent/actions/runs/12345'
+$runUrl = 'https://github.com/example/ArbolFluent/actions/runs/12345'
 $global:calls = @()
 $global:listResult = '[]'
 $global:failList = $false
@@ -18,7 +18,7 @@ function global:gh {
         return
     }
     $global:LASTEXITCODE = 0
-    'https://github.com/eruvalca/ArbolFluent/issues/42'
+    'https://github.com/example/ArbolFluent/issues/42'
 }
 
 function Reset-GhMock {
