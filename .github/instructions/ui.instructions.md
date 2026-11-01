@@ -109,3 +109,16 @@ assets/provider setup and [build rules](../../build/README.md) for enforcement.
 - Mirror a resolved client theme onto the root element when browser chrome
   depends on it; a body-only theme leaves the document scrollbar in the other
   scheme.
+
+## Asynchronous component lifetime
+
+- Components owning asynchronous I/O derive from `CancellableComponentBase` and
+  link each operation through `CreateOperation()`; cancel superseded reads, keep
+  stale-result checks, and dispose each source when its operation finishes.
+  Override `DisposeCoreAsync` for cleanup instead of hiding disposal. The base
+  type reads the `RequestAborted` cascade that the static `App` supplies, so
+  server-rendered work stops with its request while interactive work is owned by
+  the component lifetime. The repository-wide
+  [cancellation rules](../copilot-instructions.md#validation) own the shared token
+  requirements, including the ban on serializing tokens or reusing a completed
+  prerender request's token in a circuit.

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using ArbolFluent.Data;
 using ArbolFluent.Features.Account.Extensions;
+using ArbolFluent.Features.Account.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 
@@ -8,6 +9,8 @@ namespace ArbolFluent.Features.Account.Pages.Manage;
 
 public sealed partial class ChangePassword
 {
+    [Inject] private IdentityCancellation Cancellation { get; set; } = default!;
+
     private string? _message;
     private ApplicationUser? _user;
     private bool _hasPassword;
@@ -51,6 +54,7 @@ public sealed partial class ChangePassword
             return;
         }
 
+        Cancellation.CompleteWrite();
         await SignInManager.RefreshSignInAsync(_user);
         LogPasswordChanged(Logger);
 
