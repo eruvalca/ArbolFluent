@@ -34,5 +34,11 @@ public sealed class ApplicationStartupTests
         var home = await client.GetStringAsync(new Uri("/", UriKind.Relative), timeout.Token);
         home.ShouldContain("Welcome to ArbolFluent");
         home.ShouldContain("fluent-layout");
+
+        using var openApi = await client.GetAsync(new Uri("/openapi/v1.json", UriKind.Relative), timeout.Token);
+        openApi.StatusCode.ShouldBe(HttpStatusCode.OK, "/openapi/v1.json");
+        openApi.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
+        var document = await openApi.Content.ReadAsStringAsync(timeout.Token);
+        document.ShouldContain("\"openapi\"");
     }
 }
