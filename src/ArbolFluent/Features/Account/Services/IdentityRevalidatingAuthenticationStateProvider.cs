@@ -22,6 +22,9 @@ internal sealed class IdentityRevalidatingAuthenticationStateProvider(
     {
         // Get the user manager from a new scope to ensure it fetches fresh data
         await using var scope = scopeFactory.CreateAsyncScope();
+        // The fresh scope has its own bridge; hand it this revalidation's token before
+        // resolving the manager so a cancelled revalidation stops its store reads.
+        scope.ServiceProvider.GetRequiredService<IdentityCancellation>().Token = cancellationToken;
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         return await ValidateSecurityStampAsync(userManager, authenticationState.User);
     }

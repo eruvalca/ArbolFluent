@@ -91,6 +91,11 @@ else
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+// Register these explicitly so authentication runs after the token initialization above.
+// Cookie security-stamp validation then uses the request token instead of None.
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
 app.MapStaticAssets();

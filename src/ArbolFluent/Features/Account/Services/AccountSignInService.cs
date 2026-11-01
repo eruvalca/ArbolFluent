@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace ArbolFluent.Features.Account.Services;
 
-internal sealed class AccountSignInService(SignInManager<ApplicationUser> signInManager)
+internal sealed class AccountSignInService(SignInManager<ApplicationUser> signInManager, IdentityCancellation cancellation)
 {
     public async Task<SignInOutcome> PasswordAsync(string email, string password, bool rememberMe) =>
         (await signInManager.PasswordSignInAsync(email, password, rememberMe, lockoutOnFailure: false)).ToSignInOutcome();
@@ -19,8 +19,16 @@ internal sealed class AccountSignInService(SignInManager<ApplicationUser> signIn
         return (await signInManager.TwoFactorAuthenticatorSignInAsync(normalizedCode, rememberMe, rememberMachine)).ToSignInOutcome();
     }
 
-    public async Task<SignInOutcome> RecoveryCodeAsync(string code) =>
-        (await signInManager.TwoFactorRecoveryCodeSignInAsync(code.NormalizeRecoveryCode())).ToSignInOutcome();
+    public async Task<SignInOutcome> RecoveryCodeAsync(string code)
+    {
+        var result = await signInManager.TwoFactorRecoveryCodeSignInAsync(code.NormalizeRecoveryCode());
+        if (result.Succeeded)
+        {
+            // Redemption consumes the code, so the sign-in completion must not be abandoned.
+            cancellation.CompleteWrite();
+        }
+        return result.ToSignInOutcome();
+    }
 
     public async Task<SignInOutcome> ExternalAsync(string provider, string providerKey) =>
         (await signInManager.ExternalLoginSignInAsync(provider, providerKey, isPersistent: false, bypassTwoFactor: true)).ToSignInOutcome();

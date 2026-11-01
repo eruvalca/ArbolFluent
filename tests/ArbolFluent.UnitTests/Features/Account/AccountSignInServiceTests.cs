@@ -20,7 +20,7 @@ public sealed class AccountSignInServiceTests
     {
         using var identity = IdentityTestContext.Create();
         identity.SignIn.PasswordSignInAsync("member@example.test", "secret", rememberMe, false).Returns(SignInResult.Success);
-        var service = new AccountSignInService(identity.SignIn);
+        var service = new AccountSignInService(identity.SignIn, identity.Cancellation);
 
         var result = await service.PasswordAsync("member@example.test", "secret", rememberMe);
 
@@ -33,7 +33,7 @@ public sealed class AccountSignInServiceTests
     {
         using var identity = IdentityTestContext.Create();
         identity.SignIn.PasskeySignInAsync("{\"credential\":1}").Returns(SignInResult.NotAllowed);
-        var service = new AccountSignInService(identity.SignIn);
+        var service = new AccountSignInService(identity.SignIn, identity.Cancellation);
 
         var result = await service.PasskeyAsync("{\"credential\":1}");
 
@@ -51,7 +51,7 @@ public sealed class AccountSignInServiceTests
     {
         using var identity = IdentityTestContext.Create();
         identity.SignIn.TwoFactorAuthenticatorSignInAsync("123456", rememberMe, rememberMachine).Returns(SignInResult.LockedOut);
-        var service = new AccountSignInService(identity.SignIn);
+        var service = new AccountSignInService(identity.SignIn, identity.Cancellation);
 
         var result = await service.AuthenticatorAsync("12 3-45 6", rememberMe, rememberMachine);
 
@@ -64,7 +64,7 @@ public sealed class AccountSignInServiceTests
     {
         using var identity = IdentityTestContext.Create();
         identity.SignIn.TwoFactorRecoveryCodeSignInAsync("ABC-123").Returns(SignInResult.Failed);
-        var service = new AccountSignInService(identity.SignIn);
+        var service = new AccountSignInService(identity.SignIn, identity.Cancellation);
 
         var result = await service.RecoveryCodeAsync(" AB C-1 23 ");
 
@@ -73,11 +73,31 @@ public sealed class AccountSignInServiceTests
     }
 
     [Fact]
+    public async Task RecoveryCodeRedemptionClearsTheTokenSoSignInCanCompleteAsync()
+    {
+        using var identity = IdentityTestContext.Create();
+        using var cancelled = new CancellationTokenSource();
+        identity.Cancellation.Token = cancelled.Token;
+        // Abort as the redemption commits, which consumes the code.
+        identity.SignIn.TwoFactorRecoveryCodeSignInAsync("ABC-123").Returns(async _ =>
+        {
+            await cancelled.CancelAsync();
+            return SignInResult.Success;
+        });
+        var service = new AccountSignInService(identity.SignIn, identity.Cancellation);
+
+        var result = await service.RecoveryCodeAsync("ABC-123");
+
+        result.Value.ShouldBeOfType<SignInOutcome.Succeeded>();
+        identity.Cancellation.Token.ShouldBe(CancellationToken.None);
+    }
+
+    [Fact]
     public async Task ExternalUsesTemporarySignInAndBypassesTwoFactorAsync()
     {
         using var identity = IdentityTestContext.Create();
         identity.SignIn.ExternalLoginSignInAsync("Provider", "key", false, true).Returns(SignInResult.NotAllowed);
-        var service = new AccountSignInService(identity.SignIn);
+        var service = new AccountSignInService(identity.SignIn, identity.Cancellation);
 
         var result = await service.ExternalAsync("Provider", "key");
 
@@ -91,7 +111,7 @@ public sealed class AccountSignInServiceTests
         using var identity = IdentityTestContext.Create();
         var failure = new InvalidOperationException("Unavailable identity service");
         identity.SignIn.PasskeySignInAsync("credential").ThrowsAsync(failure);
-        var service = new AccountSignInService(identity.SignIn);
+        var service = new AccountSignInService(identity.SignIn, identity.Cancellation);
 
         var actual = await Should.ThrowAsync<InvalidOperationException>(() => service.PasskeyAsync("credential"));
 
@@ -103,7 +123,7 @@ public sealed class AccountSignInServiceTests
     {
         using var identity = IdentityTestContext.Create();
         identity.SignIn.PasskeySignInAsync("credential").Returns(Task.FromCanceled<SignInResult>(new CancellationToken(canceled: true)));
-        var service = new AccountSignInService(identity.SignIn);
+        var service = new AccountSignInService(identity.SignIn, identity.Cancellation);
 
         var operation = service.PasskeyAsync("credential");
 
