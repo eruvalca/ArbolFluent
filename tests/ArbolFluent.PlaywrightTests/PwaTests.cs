@@ -111,7 +111,7 @@ public sealed class PwaTests(ITestOutputHelper output)
         await page.GetByRole(AriaRole.Heading, new() { Name = "Counter", Exact = true }).WaitForAsync();
         await AssertPublicCacheOnlyAsync(page);
         origin = await page.EvaluateAsync<double>("performance.timeOrigin");
-        await context.SetOfflineAsync(true);
+        await GoOfflineAsync(page, context);
         foreach (var method in new[] { "GET", "POST" })
         {
             (await page.EvaluateAsync<bool>("async method => { try { await fetch('/counter', { method }); return true; } catch { return false; } }", method)).ShouldBeFalse();
@@ -122,23 +122,49 @@ public sealed class PwaTests(ITestOutputHelper output)
         await AssertOfflineScreenAsync(page);
         await page.ScreenshotAsync(new() { Path = Path.Combine(AppContext.BaseDirectory, "TestResults", $"pwa-offline-{page.ViewportSize?.Width}.png"), FullPage = true });
         (await page.EvaluateAsync<double>("performance.timeOrigin")).ShouldBe(origin);
-        await context.SetOfflineAsync(false);
-        await page.GetByRole(AriaRole.Link, new() { Name = "Try again", Exact = true }).ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "Welcome to ArbolFluent", Exact = true }).WaitForAsync();
+        await ReconnectAndRetryAsync(page, context, "Welcome to ArbolFluent");
 
         await page.GotoAsync("/counter");
         await page.GetByRole(AriaRole.Heading, new() { Name = "Counter", Exact = true }).WaitForAsync();
         var deepUrl = page.Url;
-        await context.SetOfflineAsync(true);
+        await GoOfflineAsync(page, context);
         var response = await page.ReloadAsync();
         response.ShouldNotBeNull().Status.ShouldBe(503);
         page.Url.ShouldBe(deepUrl);
         await AssertOfflineScreenAsync(page);
         await AssertPublicCacheOnlyAsync(page);
-        await context.SetOfflineAsync(false);
-        await page.GetByRole(AriaRole.Link, new() { Name = "Try again", Exact = true }).ClickAsync();
-        await page.GetByRole(AriaRole.Heading, new() { Name = "Counter", Exact = true }).WaitForAsync();
+        await ReconnectAndRetryAsync(page, context, "Counter");
         page.Url.ShouldBe(deepUrl);
+    }
+
+    private static async Task GoOfflineAsync(IPage page, IBrowserContext context)
+    {
+        await context.SetOfflineAsync(true);
+        // Confirm the browser actually dropped the network before asserting offline
+        // behavior, so emulation propagation is not mistaken for the app's fallback.
+        await page.WaitForFunctionAsync("""
+            async () => {
+                try { await fetch('/', { cache: 'no-store' }); return false; }
+                catch { return true; }
+            }
+            """);
+    }
+
+    private static async Task ReconnectAndRetryAsync(IPage page, IBrowserContext context, string heading)
+    {
+        await context.SetOfflineAsync(false);
+        // Chromium applies network emulation asynchronously, so a navigation started
+        // right after reconnecting can still be answered from the offline state and
+        // re-serve the cached fallback. Wait for a real same-origin round-trip before
+        // using the retry affordance.
+        await page.WaitForFunctionAsync("""
+            async () => {
+                try { return (await fetch('/', { cache: 'no-store' })).ok; }
+                catch { return false; }
+            }
+            """);
+        await page.GetByRole(AriaRole.Link, new() { Name = "Try again", Exact = true }).ClickAsync();
+        await page.GetByRole(AriaRole.Heading, new() { Name = heading, Exact = true }).WaitForAsync();
     }
 
     private static async Task VerifyInstallActionAsync(IPage page)
