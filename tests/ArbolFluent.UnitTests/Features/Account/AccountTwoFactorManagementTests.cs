@@ -45,6 +45,47 @@ public sealed class AccountTwoFactorManagementTests
     }
 
     [Fact]
+    public async Task ResetClearsTheTokenAfterDisableSoTheKeyResetCanCompleteAsync()
+    {
+        using var identity = IdentityTestContext.Create();
+        var user = new ApplicationUser();
+        using var cancelled = new CancellationTokenSource();
+        identity.Cancellation.Token = cancelled.Token;
+        // Abort as the disable commits, so the irreversible enable-state change is already written.
+        identity.Users.SetTwoFactorEnabledAsync(user, false).Returns(async _ =>
+        {
+            await cancelled.CancelAsync();
+            return IdentityResult.Success;
+        });
+        identity.Users.ResetAuthenticatorKeyAsync(user).Returns(IdentityResult.Success);
+        var service = new AccountTwoFactorService(identity.Users, identity.SignIn, identity.Cancellation);
+
+        var result = await service.ResetAsync(user);
+
+        result.Value.ShouldBeOfType<ResetAuthenticatorOutcome.ResetCompleted>();
+        identity.Cancellation.Token.ShouldBe(CancellationToken.None);
+        await identity.Users.Received(1).ResetAuthenticatorKeyAsync(user);
+        await identity.SignIn.Received(1).RefreshSignInAsync(user);
+    }
+
+    [Fact]
+    public async Task PreCancelledResetPerformsNoWriteAsync()
+    {
+        using var identity = IdentityTestContext.Create();
+        var user = new ApplicationUser();
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+        identity.Cancellation.Token = cancelled.Token;
+        var service = new AccountTwoFactorService(identity.Users, identity.SignIn, identity.Cancellation);
+
+        await Should.ThrowAsync<OperationCanceledException>(() => service.ResetAsync(user));
+
+        await identity.Users.DidNotReceiveWithAnyArgs().SetTwoFactorEnabledAsync(default!, default);
+        await identity.Users.DidNotReceiveWithAnyArgs().ResetAuthenticatorKeyAsync(default!);
+        identity.Cancellation.Token.ShouldBe(cancelled.Token);
+    }
+
+    [Fact]
     public async Task ResetDisableFailureStopsBeforeResetAndRefreshAsync()
     {
         using var identity = IdentityTestContext.Create();

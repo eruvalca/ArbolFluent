@@ -20,4 +20,15 @@ internal sealed class CancellableUserManager(
     : UserManager<ApplicationUser>(store, options, passwordHasher, userValidators, passwordValidators, normalizer, errors, services, logger)
 {
     protected override CancellationToken CancellationToken => cancellation.Token;
+
+    public override async Task<IdentityResult> RedeemTwoFactorRecoveryCodeAsync(ApplicationUser user, string code)
+    {
+        var result = await base.RedeemTwoFactorRecoveryCodeAsync(user, code);
+        if (result.Succeeded)
+        {
+            // Redemption consumes the code, and sign-in continues afterwards in a live request.
+            cancellation.CompleteWrite();
+        }
+        return result;
+    }
 }

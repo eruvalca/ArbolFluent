@@ -64,6 +64,31 @@ public sealed class CancellableUserManagerTests
         await store.Received(1).SetUserNameAsync(Arg.Any<ApplicationUser>(), "member@example.test", CancellationToken.None);
     }
 
+    [Fact]
+    public async Task RecoveryCodeRedemptionClearsTheTokenAtTheWriteBoundaryAsync()
+    {
+        var store = Substitute.For<IUserStore<ApplicationUser>, IUserTwoFactorRecoveryCodeStore<ApplicationUser>>();
+        store.UpdateAsync(Arg.Any<ApplicationUser>(), Arg.Any<CancellationToken>())
+            .Returns(IdentityResult.Success);
+        using var source = new CancellationTokenSource();
+        var cancellation = new IdentityCancellation { Token = source.Token };
+        using var manager = CreateManager(store, cancellation);
+        var user = new ApplicationUser();
+        // Abort as the store commits the redemption, before SignInManager completes sign-in.
+        ((IUserTwoFactorRecoveryCodeStore<ApplicationUser>)store)
+            .RedeemCodeAsync(user, "ABC-123", Arg.Any<CancellationToken>())
+            .Returns(async _ =>
+            {
+                await source.CancelAsync();
+                return true;
+            });
+
+        var result = await manager.RedeemTwoFactorRecoveryCodeAsync(user, "ABC-123");
+
+        result.Succeeded.ShouldBeTrue();
+        cancellation.Token.ShouldBe(CancellationToken.None);
+    }
+
     private static IUserStore<ApplicationUser> CreateStore()
     {
         var store = Substitute.For<IUserStore<ApplicationUser>>();
