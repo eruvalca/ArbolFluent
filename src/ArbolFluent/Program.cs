@@ -13,6 +13,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
+// Application code reads the clock from DI so RS0030 can ban direct system-clock access.
+builder.Services.AddSingleton(TimeProvider.System);
+// Standard HTTP contracts: problem details for errors and a document for the API surface.
+builder.Services.AddProblemDetails();
+builder.Services.AddOpenApi();
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
@@ -97,6 +103,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseAntiforgery();
+
+// The document is a development aid. Authorizing or exposing it in a deployed
+// application is an application-specific decision.
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+}
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

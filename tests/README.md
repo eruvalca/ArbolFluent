@@ -93,24 +93,24 @@ verified October 2, 2026:
 | Component | Version |
 | --- | --- |
 | .NET SDK | 10.0.401 |
-| bunit (component project only) | 2.11.3 |
-| xunit.v3.core.mtp-v2 | 4.0.1 |
+| bunit (component project only) | 2.13.3 |
+| xunit.v3.core.mtp-v2 | 4.0.2 |
 | Shouldly | 4.3.0 |
 | NSubstitute (account tests) | 6.2.0 |
 | Bogus (locally seeded fake data) | 35.6.5 |
-| Microsoft.Testing.Platform / Platform.MSBuild | 2.4.1 |
-| Microsoft.Testing.Extensions.TrxReport | 2.4.1 |
-| Microsoft.Testing.Extensions.CodeCoverage | 18.11.2 |
-| xunit.analyzers | 2.1.0 |
-| Aspire.Hosting.Testing (matches AppHost) | 13.6.0 |
-| Testcontainers.PostgreSql | 4.15.0 |
-| Microsoft.Playwright | 1.63.0 |
+| Microsoft.Testing.Platform / Platform.MSBuild | 2.5.2 |
+| Microsoft.Testing.Extensions.TrxReport | 2.5.2 |
+| Microsoft.Testing.Extensions.CodeCoverage | 18.12.0 |
+| xunit.analyzers | 2.2.0 |
+| Aspire.Hosting.Testing (matches AppHost) | 13.6.4 |
+| Testcontainers.PostgreSql | 4.16.0 |
+| Microsoft.Playwright | 1.64.1 |
 | Deque.AxeCore.Playwright (accessibility) | 4.14.0 |
 | C# Dev Kit (stable baseline) | 3.40.210 |
 
 Package versions are centralized in `Directory.Packages.props`. Explicit MTP
-runtime and MSBuild references advance xUnit's transitive 2.4.0 dependencies to
-2.4.1. Test package references use `PrivateAssets="all"`. All test projects
+runtime and MSBuild references advance xUnit's transitive 2.5.1 dependencies to
+2.5.2. Test package references use `PrivateAssets="all"`. All test projects
 reference xUnit's core MTP package, which supplies the framework and runner
 without `xunit.v3.assert`; xUnit analyzers remain included by the root build props.
 
@@ -294,7 +294,7 @@ PostgreSQL SQL translation, migrations, constraints, transactions, Identity stor
 or a service whose dependency injection you need to control. The initial test
 applies real migrations, writes an Identity user, reads it in a fresh scope, and
 checks normalized duplicate-name handling. Each test owns a disposable container
-with dynamic ports, using `postgres:18.3` to match Aspire 13.6.0. Keep the resource
+with dynamic ports, using `postgres:18.3` to match Aspire 13.6. Keep the resource
 reaper enabled; do not use development connection strings or container reuse.
 For future in-process HTTP tests, `WebApplicationFactory` can be combined with
 these containers. This project does not verify AppHost wiring or browser behavior.
@@ -302,9 +302,10 @@ these containers. This project does not verify AppHost wiring or browser behavio
 Use **Aspire integration tests** when the subject is the assembled application:
 resource references, connection injection, migrations before web startup, readiness,
 service discovery and HTTP contracts across process boundaries. These use
-`Aspire.Hosting.Testing` 13.6.0, matching the AppHost rather than independently
+`Aspire.Hosting.Testing` 13.6.4, matching the AppHost rather than independently
 upgrading its testing package. The initial test waits for the real web health
-check and migration completion, then checks health, liveness, Home and Login.
+check and migration completion, then checks health, liveness, Home, Login, and
+the Development OpenAPI document.
 Aspire starts actual processes, so test DI does not replace services in the web
 process. Configure resources before `BuildAsync`; retain startup dependencies.
 

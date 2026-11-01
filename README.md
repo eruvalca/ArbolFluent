@@ -17,7 +17,8 @@ starter came from and is excluded from generated applications.
 ## Local prerequisites
 
 - .NET SDK **10.0.401** (selected by `global.json`).
-- Aspire CLI **13.6.0** on `PATH`, matching the AppHost SDK and stable integrations.
+- Aspire CLI **13.6.4** on `PATH` (the version the workflows pin), with
+  the AppHost SDK on **13.6.4**.
   Follow the [Aspire installation guide](https://aspire.dev/get-started/install/).
 - Docker Desktop running Linux containers, or another Aspire-supported container runtime.
 - A trusted .NET development HTTPS certificate: `dotnet dev-certs https --trust`.
@@ -84,7 +85,7 @@ Aspire to allocate an available port instead of using the template's fixed ports
 The other web launch settings preserve the template's environment and Blazor debugging.
 
 The AppHost's `https` profile omits dashboard, OTLP, and resource-service addresses:
-Aspire 13.6.0 supplies secure, dynamically allocated local endpoints. The optional
+Aspire 13.6.4 supplies secure, dynamically allocated local endpoints. The optional
 AppHost `http` profile sets `ASPIRE_ALLOW_UNSECURED_TRANSPORT=true`, which opts into
 HTTP endpoints with allocated ports. This opt-in applies only when that profile
 is selected; the default `https` profile keeps Aspire's secure defaults.
@@ -261,13 +262,13 @@ An **Exited**, **Failed**, or **Unhealthy** application/database resource, or we
 startup blocked by failed migrations, does require investigation through its logs.
 
 The PostgreSQL image version is the built-in default of
-`Aspire.Hosting.PostgreSQL` 13.6.0. Container lifetime remains Aspire's default
+`Aspire.Hosting.PostgreSQL` 13.6.4. Container lifetime remains Aspire's default
 session lifetime. Data uses an Aspire-managed named volume rather than a repository
 file. This is a fresh PostgreSQL schema; the original SQLite scaffold is removed.
 
 Aspire supplies `ConnectionStrings:arbolfluentdb` to both the application and migration
-tool. The application uses Npgsql EF Core 10.0.3, EF Core 10.0.12, and Aspire's
-Npgsql EF integration 13.6.0. Its non-pooled `IDbContextFactory<ApplicationDbContext>`
+tool. The application uses Npgsql EF Core 10.0.3, EF Core 10.0.14, and Aspire's
+Npgsql EF integration 13.6.4. Its non-pooled `IDbContextFactory<ApplicationDbContext>`
 supports a context per Blazor operation; Identity can still resolve the scoped
 context. Dispose factory-created contexts with `await using`.
 
@@ -284,8 +285,8 @@ and the desired exposure of health endpoints also require application-specific w
 
 ## EF migrations
 
-`Aspire.Hosting.EntityFrameworkCore` **13.6.0-preview.1.26479.8** manages
-`arbolfluent-migrations` and its **dotnet-ef 10.0.12** tool. It does not alter the machine's
+`Aspire.Hosting.EntityFrameworkCore` **13.6.4-preview.1.26523.11** manages
+`arbolfluent-migrations` and its **dotnet-ef 10.0.14** tool. It does not alter the machine's
 global EF tool. On every start, migrations wait for PostgreSQL and the database;
 the web application starts only after migration success. Failure blocks web startup.
 Migrations use the actual web startup registration, keeping Identity's design-time
@@ -334,7 +335,11 @@ application operations retain Aspire's retry behavior.
 `src/ArbolFluent/ArbolFluent.http` lists the Development-only probes and the
 starter's public pages for manual HTTP checks. Replace its port placeholder with
 the endpoint `aspire describe` reports. This starter ships no JSON API; add
-requests there as endpoints are added. Never commit cookies or credentials.
+requests there as endpoints are added. OpenAPI and problem details are wired for
+that work: in Development, `/openapi/v1.json` serves a document for whatever
+endpoints exist, and `IProblemDetailsService` is registered for API error
+responses. Exposing or authorizing the document in a deployed application is an
+application-specific decision. Never commit cookies or credentials.
 
 The dashboard exposes server logs, request traces, Npgsql database spans, and metrics.
 Useful CLI commands include `aspire logs arbolfluent-web`, `aspire otel traces`, and
