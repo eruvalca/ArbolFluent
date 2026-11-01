@@ -330,7 +330,8 @@ is shared. Only these local HTTPS contexts ignore development certificate errors
 Prerequisites: a running Linux-container Docker engine and available images for
 all three projects; Aspire CLI/bundle and the .NET development HTTPS certificate
 for Aspire/browser tests; the package-matched Chromium binary for Playwright.
-On Linux, install Playwright OS dependencies with `playwright.ps1 install --with-deps chromium`
+On Linux, install Playwright OS dependencies with
+`pwsh ./tests/ArbolFluent.PlaywrightTests/bin/Debug/net10.0/playwright.ps1 install --with-deps chromium`
 in the build agent image/setup. Missing dependencies fail tests rather than
 silently skipping them. Unit/bUnit projects still need none of this infrastructure.
 
@@ -481,11 +482,12 @@ stable extension's manifest.
 
 ## Coverage expansion (September 28, 2026)
 
-The suite now has **413 passing cases**: 184 unit tests and 229 component tests,
-up from 235 cases. The 178 additions cover account management, authentication
-revalidation, endpoint responses, shared component contracts, navigation, and
-validation boundaries. They also verify failure paths do not write account data,
-refresh sessions, send email, or generate credentials unexpectedly.
+The September 28, 2026 round added 178 cases on top of 235, for 413 then (184 unit,
+229 component). The suite currently totals **438 passing cases**: 207 unit and 231
+component. The additions cover account management, authentication revalidation,
+endpoint responses, shared component contracts, navigation, and validation
+boundaries. They also verify failure paths do not write account data, refresh
+sessions, send email, or generate credentials unexpectedly.
 
 Validation completed with zero build warnings/errors and zero failed/skipped tests:
 

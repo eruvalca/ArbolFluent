@@ -33,6 +33,7 @@
         "**/.git", "**/.git/**", "**/.aspire/**", "**/.vs/**", "**/.idea/**",
         "**/bin/**", "**/obj/**", "**/artifacts/**", "**/TestResults/**",
         "**/test-results/**", "**/playwright-report/**", "**/.playwright-cli/**",
+        "**/.playwright/**",
         "**/node_modules/**", "**/.env", "**/.env.*", "**/secrets.json",
         "**/*.user", "**/*.suo", "**/*.pfx", "**/*.p12", "**/*.pem", "**/*.key",
         "**/*.db", "**/*.db-shm", "**/*.db-wal", "**/*.log", "**/*.binlog",

@@ -150,10 +150,11 @@ Its input list and worker file are registered with `FileWrites` for cleanup.
 Do not edit generated files or bump a handwritten worker version. If new asset
 types or build inputs are introduced, extend the input list deliberately.
 
-The stable `/service-worker.js` URL includes the generated version, so
-application-only changes also trigger browser update detection. Registration uses
-`updateViaCache: none` to revalidate the worker; deployment proxies must also
-permit fresh responses at that URL. Publish the complete output together.
+The `/service-worker.js` URL stays stable; the generated version is written into
+the worker body, so application-only changes also trigger browser update detection.
+Registration uses `updateViaCache: none` to revalidate the worker; deployment
+proxies must also permit fresh responses at that URL. Publish the complete output
+together.
 The worker caches only the three public offline fallback assets, removes only
 old `arbolfluent-offline-*` caches on activation, and waits for user consent while
 an existing worker still controls open tabs. Do not apply the standalone Blazor
@@ -829,7 +830,8 @@ Client projects. A forbidden `ProjectReference` fails the build with
 `ARBOLFLUENTARCH001`: SharedKernel allows no project references, UI allows only
 SharedKernel, and Client allows only UI and SharedKernel. Referenced paths are
 normalized to full paths, so an identically named file elsewhere does not satisfy
-a rule, and a conditional reference counts even when its condition is inactive.
+a rule, and an inactive conditional reference is not checked because it never
+enters the evaluated item list.
 The Razor validator (`build/ArbolFluent.Build`) is the single documented build-tool
 exception because it is imported with `ReferenceOutputAssembly="false"`.
 
