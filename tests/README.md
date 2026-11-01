@@ -421,7 +421,11 @@ Assert rendered DOM values with Shouldly, or use `CompareTo` followed by
 `ShouldBeEmpty` for semantic markup. Dispatch UI events with helpers such as
 `ClickAsync`, then use `WaitForAssertionAsync` for Shouldly assertions
 that depend on a render; awaiting an event handler alone does not guarantee its
-render cycle has finished. Register component dependencies in `context.Services`
+render cycle has finished. When a test must invoke a component's own callback
+instead of a DOM event, such as a `FluentSelect`'s `ValueChanged` reached through
+`FindComponents<T>()[0].Instance`, wrap it in `component.InvokeAsync(...)`:
+bUnit's renderer rejects state changes made outside its dispatcher.
+Register component dependencies in `context.Services`
 before rendering and configure required calls on `context.JSInterop` (strict by
 default). Keep tests in C# files; any future Razor test helpers must follow the
 repository's matching code-behind policy.
