@@ -34,3 +34,7 @@ Account tests also follow the [test guide](tests.instructions.md).
   Identity endpoint handlers also call `UserManager`/`SignInManager` directly,
   including for Identity's own endpoint flows; both patterns are allowed, so
   preserve the existing split instead of moving every call into a service.
+- Irreversible Identity writes call `IdentityCancellation.CompleteWrite()` before
+  any required follow-up, so the first committed write cannot be abandoned partway
+  through by request cancellation. `CancellableUserManager` forwards the scoped
+  token to Identity stores; do not read `HttpContext` from an interactive circuit.

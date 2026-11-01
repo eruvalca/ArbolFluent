@@ -1,5 +1,6 @@
 using ArbolFluent.Data;
 using ArbolFluent.Features.Account.Extensions;
+using ArbolFluent.Features.Account.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
@@ -8,6 +9,8 @@ namespace ArbolFluent.Features.Account.Pages.Manage;
 
 public sealed partial class ExternalLogins
 {
+    [Inject] private IdentityCancellation Cancellation { get; set; } = default!;
+
     public const string LinkLoginCallbackAction = "LinkLoginCallback";
 
     private ApplicationUser? _user;
@@ -70,6 +73,7 @@ public sealed partial class ExternalLogins
         }
         else
         {
+            Cancellation.CompleteWrite();
             await SignInManager.RefreshSignInAsync(_user);
             RedirectManager.RedirectToCurrentPageWithStatus("The external login was removed.", HttpContext);
         }

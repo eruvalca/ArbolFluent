@@ -22,6 +22,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddFluentUIComponents();
 builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<IdentityCancellation>();
 builder.Services.AddScoped<AccountSignInService>();
 builder.Services.AddScoped<AccountPasskeyService>();
 builder.Services.AddScoped<AccountRegistrationService>();
@@ -60,11 +61,20 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
+    .AddUserManager<CancellableUserManager>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
+
+// Request scopes and interactive circuit scopes are distinct. Background revalidation
+// supplies its own token in its fresh scope instead of capturing a request here.
+app.Use(async (context, next) =>
+{
+    context.RequestServices.GetRequiredService<IdentityCancellation>().Token = context.RequestAborted;
+    await next(context);
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -80,6 +90,11 @@ else
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+// Register these explicitly so authentication runs after the token initialization above.
+// Cookie security-stamp validation then uses the request token instead of None.
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseAntiforgery();
 

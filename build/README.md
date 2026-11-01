@@ -102,7 +102,10 @@ When adding or upgrading a package, update its central entry and keep reference
 metadata such as `PrivateAssets`, `IncludeAssets`, and conditions on the consuming
 reference. The xUnit analyzer remains conditional on `IsTestProject`; it does not
 introduce a test framework. All existing package versions and target frameworks
-were preserved during adoption. Transitive pinning is not enabled.
+were preserved during adoption. Transitive pinning is not enabled; to patch a
+vulnerable transitive package, add a direct versionless reference with a comment
+in each affected project, then remove that reference once the owning package
+references a patched version.
 
 SDK declarations, including `Aspire.AppHost.Sdk` and `global.json`, retain their
 own version settings. SDK-provided implicit package references remain under SDK
@@ -199,8 +202,8 @@ changes. [Command reference](https://learn.microsoft.com/dotnet/core/tools/dotne
 
 Text files use UTF-8 without a byte-order mark (`charset = utf-8`), including C#,
 Razor markup and companions, configuration, project files, scripts, and documentation.
-This preserves Unicode text and follows the existing C# convention in ArbolFluent rather
-than Nova's C# BOM preference. Encoding is an editor setting, not a build diagnostic.
+This preserves Unicode text and follows the existing C# convention. Encoding is an
+editor setting, not a build diagnostic.
 Keep generated and third-party files under their owning tools' control. A file that
 requires another encoding needs a documented file-specific EditorConfig override.
 
@@ -238,8 +241,8 @@ retain four-space indentation. These settings guide editors and formatters witho
 emitting build diagnostics.
 
 JavaScript, TypeScript, and CSS use spaces with four spaces per indentation level,
-including `.razor.js` and `.razor.css` companion files. This follows ArbolFluent' existing
-JavaScript and CSS layout rather than Nova's two-space preference.
+including `.razor.js` and `.razor.css` companion files. This follows the existing
+JavaScript and CSS layout.
 
 Trailing whitespace is trimmed by default in editors that honor the setting.
 Markdown (`.md` and `.markdown`) and Razor markup (`.razor`, including `_Imports.razor`)
@@ -262,22 +265,51 @@ including preformatted content, and in string literals. Never edit generated C#.
 
 ## Analyzers
 
-`Directory.Build.props` adds Nova's analyzer packages to all C# projects, including
-the build tooling; `Directory.Packages.props` holds their versions. References use
-`PrivateAssets="all"` so consumers of ArbolFluent packages do not inherit them.
+`Directory.Build.props` supplies the shared analyzer references below;
+`Directory.Packages.props` holds their versions. General analyzers apply to all
+C# projects, including the build tooling; test-specific analyzers are conditional
+on `IsTestProject`. References use `PrivateAssets="all"` so consumers of ArbolFluent
+packages do not inherit them.
 
 | Package | Purpose |
 | --- | --- |
 | Meziantou.Analyzer | Correctness, performance, API usage, and Blazor checks |
+| Microsoft.CodeAnalysis.BannedApiAnalyzers | Repository-specific API bans from project-scoped `BannedSymbols.*.txt` files |
 | SonarAnalyzer.CSharp | Bugs, security, and maintainability checks |
 | Roslynator.Analyzers | C# simplification and style checks |
 | xunit.analyzers | xUnit test checks; included only when `IsTestProject` is `true` |
+| NSubstitute.Analyzers.CSharp | NSubstitute usage checks; included only when `IsTestProject` is `true` |
 
 `ArbolFluent.UnitTests` and `ArbolFluent.ComponentTests` use xUnit with native
 Microsoft.Testing.Platform integration. Shared build props include xUnit analyzers
 for these projects; analyzer references alone do not add a test framework or
 select a runner. See [tests/README.md](../tests/README.md) for the test stack and
 conventions.
+
+NSubstitute analyzers use the same test-only condition as xUnit analyzers. They
+detect incorrect substitute usage, such as configuring or verifying non-virtual
+members, without adding NSubstitute itself or a runtime dependency. Tests that do
+not use NSubstitute retain the analyzer reference for future usage. The package's
+default diagnostic severities apply; warnings fail builds through the shared
+warnings-as-errors policy.
+
+An evaluation of [`IDisposableAnalyzers` 4.0.8](https://github.com/DotNetAnalyzers/IDisposableAnalyzers)
+did not result in adoption. The solution baseline produced 229 warnings, including
+190 in component tests, plus four informational diagnostics. Findings were dominated
+by ownership patterns the analyzer could not follow: bUnit-owned rendered components,
+NSubstitute configuration/verification calls, factory ownership transfer through
+primary constructors, operation-owned cancellation sources stored in borrowed fields,
+and asynchronous callbacks inside correctly awaited test scopes. No production leak
+was confirmed from the reviewed findings. Do not add redundant disposal or dispose
+an in-flight operation's cancellation source merely to satisfy these diagnostics.
+
+Isolated misuse probes confirmed that the package detected leaks, returning disposed
+objects, and using disposed objects. Existing Sonar rules `S2930`/`S2997` already
+caught the first two cases. `IDISP016` added a use-after-disposal finding in the probe;
+it remains a candidate for a separately evaluated, limited rule selection. Revisit
+the package when its handling of these ownership patterns improves or a specific
+gap warrants it. The trial added no persistent package reference, suppression, or
+severity override; existing disposal checks remain unchanged.
 
 Compiler and analyzer warnings emitted during builds fail through
 `TreatWarningsAsErrors`. `.editorconfig` records the agreed style preferences and
@@ -310,7 +342,7 @@ separating meaningful responsibilities rather than splitting methods solely to
 reduce the score.
 
 The composite maintainability-index rule (`CA1505`) is explicitly disabled,
-matching Nova. It combines code size, operator/operand measurements, and branching
+matching the adopted configuration. It combines code size, operator/operand measurements, and branching
 into one score. Prefer the more specific `CA1502` complexity warning and `MA0051`
 method-length suggestion, plus review of actual responsibilities. This decision
 also applies to Razor code-behind, where lifecycle and binding code need context
@@ -326,9 +358,9 @@ builds.
 At adoption, the three findings were Identity endpoint registration (66 types),
 application startup (65), and the Razor validator's `Execute` method (44). These
 methods coordinate many framework types. No Razor code-behind findings were reported;
-future component findings still need lifecycle and binding context. Nova's feature-only
-warning scope is not copied because ArbolFluent also keeps Razor components inside its
-feature folders.
+future component findings still need lifecycle and binding context. A feature-only
+warning scope is not used because this repository also keeps Razor components inside
+its feature folders.
 
 Remove unused private methods, fields, properties, and events (`IDE0051`, warning).
 Check Razor markup, framework binding, and reflection before removing a reported
@@ -765,10 +797,14 @@ Cancellation diagnostics are warnings and therefore fail builds:
 
 Keep application I/O contracts explicit: a final token parameter without a default
 value, so omitting the argument is a compile error. New application I/O services
-follow the same convention. Framework overrides, event handlers and callbacks
-retain their required signatures; obtain their token from the appropriate
-lifetime and pass it to helpers. MA0032 deliberately excludes some constrained
-signatures, so it is not a universal declaration rule.
+follow the same convention. Request-bound Identity workflows use the documented
+scoped `IdentityCancellation` bridge: it starts from `HttpContext.RequestAborted`
+and `CompleteWrite()` clears the token after the first irreversible write so the
+required follow-up and cookie refresh cannot be abandoned mid-success. Framework
+overrides, event handlers and callbacks retain their required signatures; obtain
+their token from the appropriate lifetime and pass it to helpers. MA0032
+deliberately excludes some constrained signatures, so it is not a universal
+declaration rule.
 
 These analyzers do not prove cancellation ownership, token identity, propagation
 through every abstraction, disposal, or behavior after a database commit. Explicit

@@ -331,6 +331,11 @@ open for minutes. Cancellation is cooperative: an in-flight Npgsql connection at
 can delay the response (about 15 seconds in local outage validation). Normal
 application operations retain Aspire's retry behavior.
 
+`src/ArbolFluent/ArbolFluent.http` lists the Development-only probes and the
+starter's public pages for manual HTTP checks. Replace its port placeholder with
+the endpoint `aspire describe` reports. This starter ships no JSON API; add
+requests there as endpoints are added. Never commit cookies or credentials.
+
 The dashboard exposes server logs, request traces, Npgsql database spans, and metrics.
 Useful CLI commands include `aspire logs arbolfluent-web`, `aspire otel traces`, and
 `aspire otel logs`. The Aspire MCP server provides the same resource and telemetry

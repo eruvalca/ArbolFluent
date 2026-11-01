@@ -35,12 +35,55 @@ public sealed class AccountEmailChangeServiceTests
             steps.Add("refresh");
             return Task.CompletedTask;
         });
-        var service = new AccountEmailChangeService(identity.Users, identity.SignIn);
+        var service = new AccountEmailChangeService(identity.Users, identity.SignIn, identity.Cancellation);
 
         var result = await service.ChangeAsync(user, "new@example.test", "token");
 
         result.Value.ShouldBeOfType<EmailChangeOutcome.Changed>();
         steps.ShouldBe(_successSteps);
+    }
+
+    [Fact]
+    public async Task SuccessfulChangeClearsTheTokenSoFollowUpWorkCannotBeAbandonedAsync()
+    {
+        using var identity = IdentityTestContext.Create();
+        var user = new ApplicationUser();
+        using var cancelled = new CancellationTokenSource();
+        identity.Cancellation.Token = cancelled.Token;
+        // Abort as the email write completes, so the commit boundary is what protects the follow-up.
+        identity.Users.ChangeEmailAsync(user, "new@example.test", "token").Returns(async _ =>
+        {
+            await cancelled.CancelAsync();
+            return IdentityResult.Success;
+        });
+        identity.Users.SetUserNameAsync(user, "new@example.test").Returns(IdentityResult.Success);
+        var service = new AccountEmailChangeService(identity.Users, identity.SignIn, identity.Cancellation);
+
+        var result = await service.ChangeAsync(user, "new@example.test", "token");
+
+        result.Value.ShouldBeOfType<EmailChangeOutcome.Changed>();
+        await identity.Users.Received(1).SetUserNameAsync(user, "new@example.test");
+        await identity.SignIn.Received(1).RefreshSignInAsync(user);
+        identity.Cancellation.Token.ShouldBe(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task AlreadyCancelledRequestPerformsNoWriteAsync()
+    {
+        using var identity = IdentityTestContext.Create();
+        var user = new ApplicationUser();
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+        identity.Cancellation.Token = cancelled.Token;
+        var service = new AccountEmailChangeService(identity.Users, identity.SignIn, identity.Cancellation);
+
+        await Should.ThrowAsync<OperationCanceledException>(
+            () => service.ChangeAsync(user, "new@example.test", "token"));
+
+        await identity.Users.DidNotReceiveWithAnyArgs().ChangeEmailAsync(default!, default!, default!);
+        await identity.Users.DidNotReceiveWithAnyArgs().SetUserNameAsync(default!, default!);
+        await identity.SignIn.DidNotReceiveWithAnyArgs().RefreshSignInAsync(default!);
+        identity.Cancellation.Token.ShouldBe(cancelled.Token);
     }
 
     [Fact]
@@ -50,7 +93,7 @@ public sealed class AccountEmailChangeServiceTests
         var user = new ApplicationUser();
         identity.Users.ChangeEmailAsync(user, "new@example.test", "token").Returns(IdentityResult.Failed(
             new IdentityError { Code = "BadToken", Description = "Invalid confirmation token" }));
-        var service = new AccountEmailChangeService(identity.Users, identity.SignIn);
+        var service = new AccountEmailChangeService(identity.Users, identity.SignIn, identity.Cancellation);
 
         var result = await service.ChangeAsync(user, "new@example.test", "token");
 
@@ -73,7 +116,7 @@ public sealed class AccountEmailChangeServiceTests
         });
         identity.Users.SetUserNameAsync(user, "new@example.test").Returns(IdentityResult.Failed(
             new IdentityError { Code = "NameTaken", Description = "Username is already in use" }));
-        var service = new AccountEmailChangeService(identity.Users, identity.SignIn);
+        var service = new AccountEmailChangeService(identity.Users, identity.SignIn, identity.Cancellation);
 
         var result = await service.ChangeAsync(user, "new@example.test", "token");
 

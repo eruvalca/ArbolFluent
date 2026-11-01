@@ -42,7 +42,7 @@ public sealed class AuthenticationStateRevalidationTests
         scopes.CreateScope().Returns(scope);
         using var provider = new IdentityRevalidatingAuthenticationStateProvider(NullLoggerFactory.Instance, scopes, Options.Create(options));
 
-        var valid = await ValidateAsync(provider, principal);
+        var valid = await ValidateAsync(provider, principal, TestContext.Current.CancellationToken);
 
         valid.ShouldBe(expected);
         await identity.Users.Received(1).GetSecurityStampAsync(user);
@@ -60,7 +60,7 @@ public sealed class AuthenticationStateRevalidationTests
         scopes.CreateScope().Returns(scope);
         using var provider = new IdentityRevalidatingAuthenticationStateProvider(NullLoggerFactory.Instance, scopes, Options.Create(new IdentityOptions()));
 
-        (await ValidateAsync(provider, principal)).ShouldBeFalse();
+        (await ValidateAsync(provider, principal, TestContext.Current.CancellationToken)).ShouldBeFalse();
 
         await identity.Users.DidNotReceiveWithAnyArgs().GetSecurityStampAsync(default!);
         await ((IAsyncDisposable)scope).Received(1).DisposeAsync();
@@ -78,7 +78,7 @@ public sealed class AuthenticationStateRevalidationTests
         scopes.CreateScope().Returns(scope);
         using var provider = new IdentityRevalidatingAuthenticationStateProvider(NullLoggerFactory.Instance, scopes, Options.Create(new IdentityOptions()));
 
-        (await ValidateAsync(provider, principal)).ShouldBeTrue();
+        (await ValidateAsync(provider, principal, TestContext.Current.CancellationToken)).ShouldBeTrue();
 
         await identity.Users.DidNotReceiveWithAnyArgs().GetSecurityStampAsync(default!);
     }
@@ -98,8 +98,8 @@ public sealed class AuthenticationStateRevalidationTests
         scopes.CreateScope().Returns(firstScope, secondScope);
         using var provider = new IdentityRevalidatingAuthenticationStateProvider(NullLoggerFactory.Instance, scopes, Options.Create(new IdentityOptions()));
 
-        (await ValidateAsync(provider, principal)).ShouldBeTrue();
-        (await ValidateAsync(provider, principal)).ShouldBeFalse();
+        (await ValidateAsync(provider, principal, TestContext.Current.CancellationToken)).ShouldBeTrue();
+        (await ValidateAsync(provider, principal, TestContext.Current.CancellationToken)).ShouldBeFalse();
 
         scopes.Received(2).CreateScope();
         await ((IAsyncDisposable)firstScope).Received(1).DisposeAsync();
@@ -118,27 +118,52 @@ public sealed class AuthenticationStateRevalidationTests
         scopes.CreateScope().Returns(scope);
         using var provider = new IdentityRevalidatingAuthenticationStateProvider(NullLoggerFactory.Instance, scopes, Options.Create(new IdentityOptions()));
 
-        (await Should.ThrowAsync<InvalidOperationException>(() => ValidateAsync(provider, principal))).ShouldBeSameAs(failure);
+        (await Should.ThrowAsync<InvalidOperationException>(() => ValidateAsync(provider, principal, TestContext.Current.CancellationToken))).ShouldBeSameAs(failure);
 
         await ((IAsyncDisposable)scope).Received(1).DisposeAsync();
     }
 
-    private static IServiceScope CreateScope(UserManager<ApplicationUser> users)
+    [Fact]
+    public async Task RevalidationAssignsItsTokenToTheFreshScopeBridgeAsync()
+    {
+        using var identity = IdentityTestContext.Create();
+        var principal = new ClaimsPrincipal(new ClaimsIdentity([], "test"));
+        identity.Users.GetUserAsync(principal).Returns(new ApplicationUser());
+        identity.Users.SupportsUserSecurityStamp.Returns(false);
+        var cancellation = new IdentityCancellation();
+        var scopes = Substitute.For<IServiceScopeFactory>();
+        scopes.CreateScope().Returns(_ => CreateScope(identity.Users, cancellation));
+        using var provider = new IdentityRevalidatingAuthenticationStateProvider(
+            NullLoggerFactory.Instance, scopes, Options.Create(new IdentityOptions()));
+        using var aborted = new CancellationTokenSource();
+        await aborted.CancelAsync();
+
+        (await ValidateAsync(provider, principal, aborted.Token)).ShouldBeTrue();
+
+        cancellation.Token.ShouldBe(aborted.Token);
+    }
+
+    private static IServiceScope CreateScope(UserManager<ApplicationUser> users, IdentityCancellation? cancellation = null)
     {
         var scope = Substitute.For<IServiceScope, IAsyncDisposable>();
         var services = Substitute.For<IServiceProvider>();
         services.GetService(typeof(UserManager<ApplicationUser>)).Returns(users);
+        services.GetService(typeof(IdentityCancellation)).Returns(cancellation ?? new IdentityCancellation());
         scope.ServiceProvider.Returns(services);
         return scope;
     }
 
-    private static Task<bool> ValidateAsync(IdentityRevalidatingAuthenticationStateProvider provider, ClaimsPrincipal principal)
+
+    private static Task<bool> ValidateAsync(
+        IdentityRevalidatingAuthenticationStateProvider provider,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
     {
         // Invoke the framework's protected validation hook directly. Starting the public
         // authentication loop would wait 30 minutes and test the framework's timer.
         var validate = typeof(IdentityRevalidatingAuthenticationStateProvider)
             .GetMethod("ValidateAuthenticationStateAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
             .CreateDelegate<Func<AuthenticationState, CancellationToken, Task<bool>>>(provider);
-        return validate(new AuthenticationState(principal), TestContext.Current.CancellationToken);
+        return validate(new AuthenticationState(principal), cancellationToken);
     }
 }

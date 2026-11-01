@@ -45,6 +45,7 @@ internal static class BunitAccountExtensions
             context.Services.AddSingleton(signIn);
             context.Services.AddSingleton<IUserStore<ApplicationUser>>(store);
             context.Services.AddSingleton(emails);
+            context.Services.AddScoped<IdentityCancellation>();
             context.Services.AddScoped<AccountSignInService>();
             context.Services.AddScoped<AccountPasskeyService>();
             context.Services.AddScoped<AccountRegistrationService>();

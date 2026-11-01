@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using ArbolFluent.Data;
+using ArbolFluent.Features.Account.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 
@@ -7,6 +8,8 @@ namespace ArbolFluent.Features.Account.Pages.Manage;
 
 public sealed partial class DeletePersonalData
 {
+    [Inject] private IdentityCancellation Cancellation { get; set; } = default!;
+
     private string? _message;
     private ApplicationUser? _user;
     private bool _requirePassword;
@@ -49,6 +52,8 @@ public sealed partial class DeletePersonalData
         {
             throw new InvalidOperationException("Unexpected error occurred deleting user.");
         }
+
+        Cancellation.CompleteWrite();
 
         await SignInManager.SignOutAsync();
 

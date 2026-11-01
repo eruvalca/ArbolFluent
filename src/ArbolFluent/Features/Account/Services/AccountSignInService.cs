@@ -19,6 +19,8 @@ internal sealed class AccountSignInService(SignInManager<ApplicationUser> signIn
         return (await signInManager.TwoFactorAuthenticatorSignInAsync(normalizedCode, rememberMe, rememberMachine)).ToSignInOutcome();
     }
 
+    // The redemption boundary is owned by CancellableUserManager, which clears the scoped
+    // token as soon as the code is consumed so SignInManager's completion still runs.
     public async Task<SignInOutcome> RecoveryCodeAsync(string code) =>
         (await signInManager.TwoFactorRecoveryCodeSignInAsync(code.NormalizeRecoveryCode())).ToSignInOutcome();
 

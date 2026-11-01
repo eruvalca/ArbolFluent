@@ -1,4 +1,5 @@
 using ArbolFluent.Data;
+using ArbolFluent.Features.Account.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -16,6 +17,7 @@ internal sealed class IdentityTestContext(
     public IUserEmailStore<ApplicationUser> Store { get; } = store;
     public UserManager<ApplicationUser> Users { get; } = userManager;
     public SignInManager<ApplicationUser> SignIn { get; } = signInManager;
+    public IdentityCancellation Cancellation { get; } = new();
 
     public static IdentityTestContext Create()
     {

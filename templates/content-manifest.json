@@ -9,6 +9,6 @@
     "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props",
     "global.json", "ArbolFluent.slnx", "aspire.config.json", "README.md"
   ],
-  "textExtensions": [".cs", ".csproj", ".razor", ".css", ".js", ".json", ".webmanifest", ".html", ".md", ".txt", ".props", ".targets", ".globalconfig", ".slnx", ".ps1", ".yml", ".yaml"],
+  "textExtensions": [".cs", ".csproj", ".razor", ".css", ".js", ".json", ".webmanifest", ".html", ".md", ".txt", ".props", ".targets", ".globalconfig", ".slnx", ".ps1", ".yml", ".yaml", ".http"],
   "binaryExtensions": [".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".woff", ".woff2", ".ttf", ".pdf"]
 }
