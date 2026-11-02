@@ -53,6 +53,3 @@ procedures remain in the [root README](../../README.md).
   `src/ArbolFluent/Data/Migrations`, namespace `ArbolFluent.Migrations`. Rebuild after
   generating migrations. The web resource must wait for successful migration
   completion; do not add application-startup migration code or a custom worker.
-- Resolve the current instant through an injected `TimeProvider`, and pass explicit
-  instants into shared pure calculations; `RS0030` bans direct system-clock
-  properties in this project.

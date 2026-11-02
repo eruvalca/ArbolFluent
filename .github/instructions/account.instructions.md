@@ -18,13 +18,6 @@ Account tests also follow the [test guide](tests.instructions.md).
 
 ## Static SSR and redirect contracts
 
-- Account pages use static server-side rendering (SSR). Preserve
-  `[ExcludeFromInteractiveRouting]` in their page imports, authorization on
-  account-management pages, and their HTTP context and cookie contracts. Keep
-  form names, POST methods, `[SupplyParameterFromForm]` mapping, and antiforgery
-  hooks intact. Account pages stay on static SSR under the repository-wide
-  [render-mode rules](../copilot-instructions.md#project-boundaries-and-rendering);
-  do not apply a global interactive render mode that changes account behavior.
 - `BlazorDisableThrowNavigationException` is enabled. After redirecting, return
   or otherwise terminate the current branch when subsequent work must not
   execute. Do not rely on navigation throwing to stop an account operation.
