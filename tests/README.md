@@ -341,6 +341,8 @@ back into the solution. Locator actions auto-wait; await observable readiness
 with locators before asserting values with Shouldly. Do not use `WaitForTimeout`.
 Each navigation case attempts to retain `page.png` and `trace.zip` independently
 in a unique `bin/<configuration>/net10.0/TestResults/navigation-*` directory.
+To diagnose PWA failures, inspect `page.png` and `trace.zip` under the Playwright
+test binary directory in `TestResults/pwa-<width>-*`.
 Artifact capture is best effort: failures are reported through xUnit test output
 and do not replace the original test failure or prevent the other capture attempt.
 `BrowserArtifactsTests` checks closed-page and unwritable-directory failures;

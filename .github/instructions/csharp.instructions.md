@@ -90,24 +90,6 @@ distinguishes complete success from partial completion.
 
 ## C# extension members
 
-- Prefer C# 14 extension blocks for handwritten extensions. Group related members
-  by receiver and concern, using internal static containers for feature-local APIs.
-  Preserve existing public contracts and document any compatibility or generator
-  requirement that needs classic extension-method syntax.
-- Use properties for inexpensive, side-effect-free facts and methods for
-  transformations, enumeration, async work, or side effects. Keep core behavior
-  and factories on types we own; do not convert every static helper.
 - Follow the [C# extension members skill](../../.agents/skills/csharp-extension-members/SKILL.md)
   for receiver/generic rules, migration checks, and compiled examples. Keep this
   repository on C# 14; do not copy preview extension indexers or SDK settings.
-
-## Time and cancellation
-
-- Resolve the current instant from an injected `TimeProvider`; pass explicit dates
-  and instants into shared pure calculations. `RS0030` bans direct system-clock
-  properties in the four application projects; see
-  [banned APIs](../../build/README.md#banned-apis).
-- Accept an explicit final `CancellationToken` on application I/O methods and
-  forward it. The cancellation analyzer set and the acceptable reasons for an
-  explicit `None` are documented in
-  [cancellation enforcement](../../build/README.md#cancellation-enforcement).
